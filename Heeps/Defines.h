@@ -114,7 +114,7 @@ struct amount_t
     }
     uint32_t avg()
     {
-        return count > 0 ? (total / count) : 0;
+        return count > 0 ? static_cast<uint32_t>(total / count) : 0;
     }
 };
 

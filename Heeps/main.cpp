@@ -29,7 +29,7 @@ Heeps::Heeps(void)
     , m_MaxBars(15)
     , m_PartyOnly(true)
     , m_TVMode(false)
-    , m_GUIScale(1)
+    , m_GUIScale(1.0f)
 { }
 Heeps::~Heeps(void)
 { }
@@ -53,7 +53,7 @@ const char* Heeps::GetName(void) const
     return "Heeps";
 }
 
-double Heeps::GetVersion(void) const
+float Heeps::GetVersion(void) const
 {
     return 1.06f;
 }
@@ -95,7 +95,7 @@ bool Heeps::Initialize(IAshitaCore* core, ILogManager* log, uint32_t id)
 	this->m_PluginId = id;
 	this->m_LogManager = log;
     this->m_LastRender = clock();
-    srand(time(NULL));
+    srand(static_cast<unsigned int>(time(NULL)));
     m_CharInfo = 0;
 	m_AshitaCore->GetConfigurationManager()->Load("Heeps", "Heeps");
 
@@ -193,7 +193,7 @@ bool Heeps::HandleCommand(int32_t mode, const char* command, bool injected)
             else if (args[1] == "tvmode")
             {
                 m_TVMode = !m_TVMode;
-                m_GUIScale = m_TVMode ? 1.5 : 1;
+                m_GUIScale = m_TVMode ? 1.5f : 1.0f;
                 // Wipe heeps to re-render the bars correctly
                  m_Entities.clear();
                 m_SourceInfo.clear();
@@ -246,9 +246,9 @@ void Heeps::Report(char mode, int max)
             sprintf_s(buff, 256, "/%c %s", mode, m_Background->GetText());
             m_AshitaCore->GetChatManager()->QueueCommand(1, buff);
         }
-        for (int i = 0; i < m_Bars.size(); i++)
+        for (size_t i = 0; i < m_Bars.size(); i++)
         {
-            if (i > max)
+            if (i > static_cast<size_t>(max))
                 break;
             std::this_thread::sleep_for(std::chrono::milliseconds(1100));
 

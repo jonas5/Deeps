@@ -99,7 +99,7 @@ public:
     virtual ~Heeps(void);
     uint32_t GetFlags(void) const;
     const char* GetName(void) const;
-    double GetVersion(void) const;
+    float GetVersion(void) const;
     const char* GetAuthor(void) const;
     const char* GetDescription(void) const;
     bool Initialize(IAshitaCore* core, ILogManager* log, uint32_t id);

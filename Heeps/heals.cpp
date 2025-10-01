@@ -37,19 +37,19 @@ bool Heeps::HandleIncomingPacket(uint16_t id, uint32_t size, const uint8_t* data
         return false;
     }
 
-    uint8_t actionType = (uint8_t)Ashita::BinaryData::UnpackBitsBE(data, 82, 4);
+    uint8_t actionType = (uint8_t)Ashita::BinaryData::UnpackBitsBE(const_cast<uint8_t*>(data), 82, 4);
     if (!IsParsedActionType(actionType))
     {
         return false;
     }
 
     uint32_t startBit = 0;
-    uint8_t targetCount = (uint8_t)Ashita::BinaryData::UnpackBitsBE(data, startBit + 40, 4);
+    uint8_t targetCount = (uint8_t)Ashita::BinaryData::UnpackBitsBE(const_cast<uint8_t*>(data), startBit + 40, 4);
 
     for (uint8_t i = 0; i < targetCount; ++i)
     {
         uint32_t targetBit = startBit + 44 + (i * 240);
-        uint32_t actorID = Ashita::BinaryData::UnpackBitsBE(data, targetBit, 32);
+        uint32_t actorID = (uint32_t)Ashita::BinaryData::UnpackBitsBE(const_cast<uint8_t*>(data), targetBit, 32);
 
         if (actorID == 0)
             continue;
@@ -117,21 +117,21 @@ bool Heeps::HandleIncomingPacket(uint16_t id, uint32_t size, const uint8_t* data
             }
         }
 
-        uint16_t actionID = (uint16_t)Ashita::BinaryData::UnpackBitsBE(data, 86, 10);
+        uint16_t actionID = (uint16_t)Ashita::BinaryData::UnpackBitsBE(const_cast<uint8_t*>(data), 86, 10);
         source_t* source = GetHealSource(entityInfo, actionType, actionID, isPet);
         if (source == nullptr)
             continue;
 
-        uint8_t actionCount = (uint8_t)Ashita::BinaryData::UnpackBitsBE(data, targetBit + 64, 4);
+        uint8_t actionCount = (uint8_t)Ashita::BinaryData::UnpackBitsBE(const_cast<uint8_t*>(data), targetBit + 64, 4);
         for (uint8_t j = 0; j < actionCount; ++j)
         {
             uint32_t actionBit = targetBit + 68 + (j * 192);
-            uint8_t hasAdditionalEffect = (uint8_t)Ashita::BinaryData::UnpackBitsBE(data, actionBit + 128, 1);
+            uint8_t hasAdditionalEffect = (uint8_t)Ashita::BinaryData::UnpackBitsBE(const_cast<uint8_t*>(data), actionBit + 128, 1);
 
             if (hasAdditionalEffect)
             {
-                uint16_t addEffectAmount = (uint16_t)Ashita::BinaryData::UnpackBitsBE(data, actionBit + 132, 16);
-                uint16_t addMessageID = (uint16_t)Ashita::BinaryData::UnpackBitsBE(data, actionBit + 149, 10);
+                uint16_t addEffectAmount = (uint16_t)Ashita::BinaryData::UnpackBitsBE(const_cast<uint8_t*>(data), actionBit + 132, 16);
+                uint16_t addMessageID = (uint16_t)Ashita::BinaryData::UnpackBitsBE(const_cast<uint8_t*>(data), actionBit + 149, 10);
                 UpdateHealSource(source, addMessageID, addEffectAmount);
             }
         }
@@ -235,10 +235,6 @@ void Heeps::UpdateHealSource(source_t* source, uint16_t message, uint32_t amount
     if (std::find(healMessages.begin(), healMessages.end(), message) != healMessages.end())
     {
         type = &source->amount["Heal"];
-    }
-    else if (std::find(critHealMessages.begin(), critHealMessages.end(), message) != critHealMessages.end())
-    {
-        type = &source->amount["CritHeal"];
     }
 
     if (type == NULL || amount == 0)

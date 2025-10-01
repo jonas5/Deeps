@@ -73,12 +73,12 @@ bool Heeps::Direct3DInitialize(IDirect3DDevice8* device)
 
     m_Background = m_AshitaCore->GetFontManager()->Create("HeepsBackground");
     m_Background->SetFontFamily("Arial");
-    m_Background->SetFontHeight(TITLE_FONT_HEIGHT * m_GUIScale);
+    m_Background->SetFontHeight(static_cast<uint32_t>(TITLE_FONT_HEIGHT * m_GUIScale));
     m_Background->SetAutoResize(false);
     m_Background->GetBackground()->SetColor(D3DCOLOR_ARGB(0xCC, 0x00, 0x00, 0x00));
     m_Background->GetBackground()->SetVisible(true);
-    m_Background->GetBackground()->SetWidth(WINDOW_WIDTH * m_GUIScale);
-    m_Background->GetBackground()->SetHeight(TITLEBAR_HEIGHT * m_GUIScale);
+    m_Background->GetBackground()->SetWidth(static_cast<uint32_t>(WINDOW_WIDTH * m_GUIScale));
+    m_Background->GetBackground()->SetHeight(static_cast<uint32_t>(TITLEBAR_HEIGHT * m_GUIScale));
     m_Background->GetBackground()->SetCanFocus(false);
     m_Background->SetColor(D3DCOLOR_ARGB(0xFF, 0xFF, 0xFF, 0xFF));
     m_Background->SetBold(false);
@@ -102,9 +102,9 @@ void Heeps::Direct3DPresent(const RECT* pSourceRect, const RECT* pDestRect, HWND
     }
 
     // Making sure the background heights and widths are good for when the size toggle is switched
-    m_Background->SetFontHeight(TITLE_FONT_HEIGHT * m_GUIScale);
-    m_Background->GetBackground()->SetWidth(WINDOW_WIDTH * m_GUIScale);
-    m_Background->GetBackground()->SetHeight(TITLEBAR_HEIGHT * m_GUIScale);
+    m_Background->SetFontHeight(static_cast<uint32_t>(TITLE_FONT_HEIGHT * m_GUIScale));
+    m_Background->GetBackground()->SetWidth(static_cast<uint32_t>(WINDOW_WIDTH * m_GUIScale));
+    m_Background->GetBackground()->SetHeight(static_cast<uint32_t>(TITLEBAR_HEIGHT * m_GUIScale));
 
     if (m_CharInfo == 0)
     {
@@ -113,16 +113,16 @@ void Heeps::Direct3DPresent(const RECT* pSourceRect, const RECT* pDestRect, HWND
         uint64_t total = 0;
         for (auto iter = m_Entities.begin(); iter != m_Entities.end(); iter++)
         {
-            if ((iter->second.total() != 0) && (temp.size() < m_MaxBars) && (this->CheckPartySetting(iter->first)))
+            if ((iter->second.total() != 0) && (temp.size() < static_cast<size_t>(m_MaxBars)) && (this->CheckPartySetting(iter->first)))
             {
                 temp.push_back(iter->second);
                 total += iter->second.total();
             }
         }
         std::sort(temp.begin(), temp.end(), [](entitysources_t a, entitysources_t b) { return a > b; });
-        RepairBars(m_Background, temp.size());
+        RepairBars(m_Background, static_cast<uint8_t>(temp.size()));
 
-        int i        = 0;
+        size_t i        = 0;
         uint64_t max = 0;
         m_ClickMap.clear();
         for (auto iter = temp.begin(); iter != temp.end(); iter++)
@@ -130,11 +130,11 @@ void Heeps::Direct3DPresent(const RECT* pSourceRect, const RECT* pDestRect, HWND
             IFontObject* bar = m_Bars[i];
             if (iter->total() > max)
                 max = iter->total();
-            bar->GetBackground()->SetWidth((BAR_WIDTH * m_GUIScale) * (total == 0 ? 1 : ((float)iter->total() / (float)max)));
+            bar->GetBackground()->SetWidth(static_cast<uint32_t>((BAR_WIDTH * m_GUIScale) * (total == 0 ? 1 : ((float)iter->total() / (float)max))));
             bar->GetBackground()->SetColor(this->CheckColorSetting(iter->id, iter->color));
             char string[256];
-            sprintf_s(string, 256, " %d. %-10.10s %6llu (%03.1f%%)\n",
-                i + 1, iter->name.c_str(), iter->total(), total == 0 ? 0 : 100 * ((float)iter->total() / (float)total));
+            sprintf_s(string, 256, " %zu. %-10.10s %6llu (%03.1f%%)\n",
+                i + 1, iter->name.c_str(), iter->total(), total == 0 ? 0.0f : 100.0f * ((float)iter->total() / (float)total));
             bar->SetText(string);
             m_ClickMap.insert(std::pair<IFontObject*, std::string>(bar, iter->name));
             i++;
@@ -161,8 +161,8 @@ void Heeps::Direct3DPresent(const RECT* pSourceRect, const RECT* pDestRect, HWND
                 char string[256];
                 sprintf_s(string, 256, " %s - Sources\n", it->second.name.c_str());
                 m_Background->SetText(string);
-                RepairBars(m_Background, temp.size());
-                int i        = 0;
+                RepairBars(m_Background, static_cast<uint8_t>(temp.size()));
+                size_t i        = 0;
                 uint64_t max = 0;
                 m_ClickMap.clear();
                 for (auto s : temp)
@@ -170,11 +170,11 @@ void Heeps::Direct3DPresent(const RECT* pSourceRect, const RECT* pDestRect, HWND
                     IFontObject* bar = m_Bars[i];
                     if (s.total() > max)
                         max = s.total();
-                    bar->GetBackground()->SetWidth((BAR_WIDTH * m_GUIScale) * (total == 0 ? 1 : ((float)s.total() / (float)max)));
+                    bar->GetBackground()->SetWidth(static_cast<uint32_t>((BAR_WIDTH * m_GUIScale) * (total == 0 ? 1 : ((float)s.total() / (float)max))));
                     bar->GetBackground()->SetColor(this->CheckColorSetting(it->first, it->second.color));
                     char string[256];
-                    sprintf_s(string, 256, " %d. %-10.10s %6llu (%03.1f%%)\n",
-                        i + 1, s.name.c_str(), s.total(), total == 0 ? 0 : 100 * ((float)s.total() / (float)total));
+                    sprintf_s(string, 256, " %zu. %-10.10s %6llu (%03.1f%%)\n",
+                        i + 1, s.name.c_str(), s.total(), total == 0 ? 0.0f : 100.0f * ((float)s.total() / (float)total));
                     bar->SetText(string);
                     m_ClickMap.insert(std::pair<IFontObject*, std::string>(bar, s.name));
                     i++;
@@ -201,19 +201,19 @@ void Heeps::Direct3DPresent(const RECT* pSourceRect, const RECT* pDestRect, HWND
                         char string[256];
                         sprintf_s(string, 256, " %s - %s\n", it->second.name.c_str(), s.second.name.c_str());
                         m_Background->SetText(string);
-                        RepairBars(m_Background, temp.size());
+                        RepairBars(m_Background, static_cast<uint8_t>(temp.size()));
 
-                        int i        = 0;
+                        size_t i        = 0;
                         uint32_t max = 0;
                         for (auto s : temp)
                         {
                             IFontObject* bar = m_Bars[i];
                             if (s.second.count > max)
                                 max = s.second.count;
-                            bar->GetBackground()->SetWidth((BAR_WIDTH * m_GUIScale) * (count == 0 ? 1 : 1 * ((float)s.second.count / (float)max)));
+                            bar->GetBackground()->SetWidth(static_cast<uint32_t>((BAR_WIDTH * m_GUIScale) * (count == 0 ? 1.0f : 1.0f * ((float)s.second.count / (float)max))));
                             bar->GetBackground()->SetColor(this->CheckColorSetting(it->first, it->second.color));
                             char string[256];
-                            sprintf_s(string, 256, " %-5sCnt:%4d  Avg:%5d  Max:%5d (%3.1f%%)\n", s.first, s.second.count, s.second.avg(), s.second.max, count == 0 ? 0 : 100 * ((float)s.second.count / (float)count));
+                            sprintf_s(string, 256, " %-5sCnt:%4d  Avg:%5d  Max:%5d (%3.1f%%)\n", s.first, s.second.count, s.second.avg(), s.second.max, count == 0 ? 0.0f : 100.0f * ((float)s.second.count / (float)count));
                             bar->SetText(string);
                             i++;
                         }
@@ -223,7 +223,7 @@ void Heeps::Direct3DPresent(const RECT* pSourceRect, const RECT* pDestRect, HWND
             }
         }
     }
-    m_Background->GetBackground()->SetHeight(m_Bars.size() * (BAR_BACKGROUND_HEIGHT * m_GUIScale) + (TITLEBAR_HEIGHT * m_GUIScale));
+    m_Background->GetBackground()->SetHeight(static_cast<uint32_t>(m_Bars.size() * (BAR_BACKGROUND_HEIGHT * m_GUIScale) + (TITLEBAR_HEIGHT * m_GUIScale)));
     m_LastRender = clock();
 }
 
@@ -235,13 +235,12 @@ void Heeps::Direct3DPresent(const RECT* pSourceRect, const RECT* pDestRect, HWND
  */
 void Heeps::RepairBars(IFontObject* heepsBase, uint8_t size)
 {
-    auto barCount = m_Bars.size();
-    auto limit    = max(size, barCount);
-    while (m_Bars.size() < size)
+    size_t barCount = m_Bars.size();
+    while (m_Bars.size() < static_cast<size_t>(size))
     {
         barCount = m_Bars.size();
         char buffer[256];
-        sprintf_s(buffer, 256, "HeepsBar%d", barCount);
+        sprintf_s(buffer, 256, "HeepsBar%zu", barCount);
         auto newBar = m_AshitaCore->GetFontManager()->Create(buffer);
         newBar->SetAutoResize(false);
         newBar->SetFontFamily("Arial");
@@ -249,27 +248,27 @@ void Heeps::RepairBars(IFontObject* heepsBase, uint8_t size)
         {
             newBar->SetCreateFlags(Ashita::FontCreateFlags::Bold);
         }
-        newBar->SetFontHeight(BAR_FONT_HEIGHT * m_GUIScale);
+        newBar->SetFontHeight(static_cast<uint32_t>(BAR_FONT_HEIGHT * m_GUIScale));
         newBar->GetBackground()->SetColor(D3DCOLOR_ARGB(0xFF, 0x00, 0x7C, 0x5C));
         newBar->GetBackground()->SetVisible(true);
         sprintf_s(buffer, 256, "%s\\Resources\\Heeps\\bar.tga", m_AshitaCore->GetInstallPath());
         newBar->GetBackground()->SetTextureFromFile(buffer);
-        newBar->GetBackground()->SetWidth(BAR_WIDTH * m_GUIScale);
-        newBar->GetBackground()->SetHeight(BAR_HEIGHT * m_GUIScale);
+        newBar->GetBackground()->SetWidth(static_cast<uint32_t>(BAR_WIDTH * m_GUIScale));
+        newBar->GetBackground()->SetHeight(static_cast<uint32_t>(BAR_HEIGHT * m_GUIScale));
         newBar->SetVisible(true);
         newBar->SetCanFocus(false);
         if (barCount == 0)
         {
             newBar->SetParent(m_Background);
-            newBar->SetPositionX(BAR_HORIZONTAL_PADDING * m_GUIScale);
-            newBar->SetPositionY((TITLEBAR_HEIGHT * m_GUIScale) - (1 * m_GUIScale));
+            newBar->SetPositionX(static_cast<float>(BAR_HORIZONTAL_PADDING * m_GUIScale));
+            newBar->SetPositionY(static_cast<float>((TITLEBAR_HEIGHT * m_GUIScale) - (1 * m_GUIScale)));
         }
         else
         {
             newBar->SetParent(m_Bars[barCount - 1]);
             newBar->SetAnchorParent(Ashita::FrameAnchor::BottomLeft);
             newBar->SetPositionX(0);
-            newBar->SetPositionY(BETWEEN_BAR_PADDING * m_GUIScale);
+            newBar->SetPositionY(static_cast<float>(BETWEEN_BAR_PADDING * m_GUIScale));
         }
         m_Bars.push_back(newBar);
     }
@@ -387,7 +386,7 @@ uint32_t Heeps::CheckColorSetting(uint32_t id, uint32_t randomColor)
 
     // Check if we have an available job for the player (Job can be 0 if person is anon!!)
     IParty* party = m_AshitaCore->GetMemoryManager()->GetParty();
-    for (auto i = 0; i < 18; i++)
+    for (int i = 0; i < 18; i++)
     {
         if (party->GetMemberServerId(i) == id)
         {
@@ -406,7 +405,7 @@ bool Heeps::CheckPartySetting(uint32_t id)
         return true;
 
     IParty* party = m_AshitaCore->GetMemoryManager()->GetParty();
-    for (auto i = 0; i < 18; i++)
+    for (int i = 0; i < 18; i++)
     {
         if (party->GetMemberServerId(i) == id)
         {
