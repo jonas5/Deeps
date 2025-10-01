@@ -15,30 +15,29 @@
 * along with Ashita.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "Deeps.h"
+#include "Heeps.h"
 //Global pointer for callback to use
-Deeps* g_Deeps = NULL;
+Heeps* g_Heeps = NULL;
 
 /**
  * Global function to serve as mouse callback
  */
 BOOL __stdcall g_OnClick(uint32_t uMsg, WPARAM wParam, LPARAM lParam, bool handled)
 {
-    return g_Deeps->OnClick(uMsg, wParam, lParam, handled);
+    return g_Heeps->OnClick(uMsg, wParam, lParam, handled);
 }
 
 /**
  * @brief Direct3D release call to allow this plugin to cleanup any Direct3D objects.
  */
-void Deeps::Direct3DRelease(void)
+void Heeps::Direct3DRelease(void)
 {
-    m_AshitaCore->GetInputManager()->GetMouse()->RemoveCallback("deeps_click");
+    m_AshitaCore->GetInputManager()->GetMouse()->RemoveCallback("heeps_click");
 
-    m_AshitaCore->GetConfigurationManager()->SetValue("Deeps", "guipos", "xpos", std::to_string(m_Background->GetPositionX()).c_str());
-    m_AshitaCore->GetConfigurationManager()->SetValue("Deeps", "guipos", "ypos", std::to_string(m_Background->GetPositionY()).c_str());
-    m_AshitaCore->GetConfigurationManager()->SetValue("Deeps", "tvmode", "enabled", std::to_string(m_TVMode).c_str());
-    m_AshitaCore->GetConfigurationManager()->SetValue("Deeps", "sc", "enabled", std::to_string(m_CountSkillchains).c_str());
-    m_AshitaCore->GetConfigurationManager()->Save("Deeps", "Deeps");
+    m_AshitaCore->GetConfigurationManager()->SetValue("Heeps", "guipos", "xpos", std::to_string(m_Background->GetPositionX()).c_str());
+    m_AshitaCore->GetConfigurationManager()->SetValue("Heeps", "guipos", "ypos", std::to_string(m_Background->GetPositionY()).c_str());
+    m_AshitaCore->GetConfigurationManager()->SetValue("Heeps", "tvmode", "enabled", std::to_string(m_TVMode).c_str());
+    m_AshitaCore->GetConfigurationManager()->Save("Heeps", "Heeps");
 
     m_AshitaCore->GetFontManager()->Delete(m_Background->GetAlias());
 
@@ -61,19 +60,18 @@ void Deeps::Direct3DRelease(void)
  * @note    Plugins that do not return true on this call will not receive any other
  *          Direct3D calls listed below!
  */
-bool Deeps::Direct3DInitialize(IDirect3DDevice8* device)
+bool Heeps::Direct3DInitialize(IDirect3DDevice8* device)
 {
     this->m_Direct3DDevice = device;
     m_Drag                 = false;
-    g_Deeps                = this;
+    g_Heeps                = this;
 
-    float xpos = m_AshitaCore->GetConfigurationManager()->GetFloat("Deeps", "guipos", "xpos", 300.0f);
-    float ypos = m_AshitaCore->GetConfigurationManager()->GetFloat("Deeps", "guipos", "ypos", 300.0f);
-    m_TVMode = m_AshitaCore->GetConfigurationManager()->GetBool("Deeps", "tvmode", "enabled", false);
-    m_GUIScale = m_AshitaCore->GetConfigurationManager()->GetBool("Deeps", "tvmode", "enabled", false) ? 1.5f : 1.0f;
-    m_CountSkillchains = m_AshitaCore->GetConfigurationManager()->GetBool("Deeps", "sc", "enabled", true);
+    float xpos = m_AshitaCore->GetConfigurationManager()->GetFloat("Heeps", "guipos", "xpos", 300.0f);
+    float ypos = m_AshitaCore->GetConfigurationManager()->GetFloat("Heeps", "guipos", "ypos", 300.0f);
+    m_TVMode = m_AshitaCore->GetConfigurationManager()->GetBool("Heeps", "tvmode", "enabled", false);
+    m_GUIScale = m_AshitaCore->GetConfigurationManager()->GetBool("Heeps", "tvmode", "enabled", false) ? 1.5f : 1.0f;
 
-    m_Background = m_AshitaCore->GetFontManager()->Create("DeepsBackground");
+    m_Background = m_AshitaCore->GetFontManager()->Create("HeepsBackground");
     m_Background->SetFontFamily("Arial");
     m_Background->SetFontHeight(TITLE_FONT_HEIGHT * m_GUIScale);
     m_Background->SetAutoResize(false);
@@ -89,12 +87,12 @@ bool Deeps::Direct3DInitialize(IDirect3DDevice8* device)
     m_Background->SetPositionY(ypos);
     m_Background->SetVisible(true);
 
-    m_AshitaCore->GetInputManager()->GetMouse()->AddCallback("deeps_click", g_OnClick);
+    m_AshitaCore->GetInputManager()->GetMouse()->AddCallback("heeps_click", g_OnClick);
 
     return true;
 }
 
-void Deeps::Direct3DPresent(const RECT* pSourceRect, const RECT* pDestRect, HWND hDestWindowOverride, const RGNDATA* pDirtyRegion)
+void Heeps::Direct3DPresent(const RECT* pSourceRect, const RECT* pDestRect, HWND hDestWindowOverride, const RGNDATA* pDirtyRegion)
 {
 
     clock_t now = clock();
@@ -110,7 +108,7 @@ void Deeps::Direct3DPresent(const RECT* pSourceRect, const RECT* pDestRect, HWND
 
     if (m_CharInfo == 0)
     {
-        m_Background->SetText(" Deeps - Damage Done");
+        m_Background->SetText(" Heeps - Healing Done");
         std::vector<entitysources_t> temp;
         uint64_t total = 0;
         for (auto iter = m_Entities.begin(); iter != m_Entities.end(); iter++)
@@ -135,8 +133,8 @@ void Deeps::Direct3DPresent(const RECT* pSourceRect, const RECT* pDestRect, HWND
             bar->GetBackground()->SetWidth((BAR_WIDTH * m_GUIScale) * (total == 0 ? 1 : ((float)iter->total() / (float)max)));
             bar->GetBackground()->SetColor(this->CheckColorSetting(iter->id, iter->color));
             char string[256];
-            sprintf_s(string, 256, " %d. %-10.10s %6llu (%03.1f%%)  -  Hit: %03.1f%% \n",
-                i + 1, iter->name.c_str(), iter->total(), total == 0 ? 0 : 100 * ((float)iter->total() / (float)total), iter->hitrate());
+            sprintf_s(string, 256, " %d. %-10.10s %6llu (%03.1f%%)\n",
+                i + 1, iter->name.c_str(), iter->total(), total == 0 ? 0 : 100 * ((float)iter->total() / (float)total));
             bar->SetText(string);
             m_ClickMap.insert(std::pair<IFontObject*, std::string>(bar, iter->name));
             i++;
@@ -182,15 +180,15 @@ void Deeps::Direct3DPresent(const RECT* pSourceRect, const RECT* pDestRect, HWND
                     i++;
                 }
             }
-            else // This is when a player's bar has been clicked into for additional details about their damage
+            else // This is when a player's bar has been clicked into for additional details about their healing
             {
                 for (auto s : it->second.sources)
                 {
                     if (s.second.name == m_SourceInfo)
                     {
-                        std::vector<std::pair<const char*, damage_t>> temp;
+                        std::vector<std::pair<const char*, amount_t>> temp;
                         uint32_t count = 0;
-                        for (const auto d : s.second.damage)
+                        for (const auto d : s.second.amount)
                         {
                             if (d.second.count != 0 && temp.size() < 15)
                             {
@@ -199,7 +197,7 @@ void Deeps::Direct3DPresent(const RECT* pSourceRect, const RECT* pDestRect, HWND
                             }
                         }
 
-                        std::sort(temp.begin(), temp.end(), [](std::pair<const char*, damage_t> a, std::pair<const char*, damage_t> b) { return a.second > b.second; });
+                        std::sort(temp.begin(), temp.end(), [](std::pair<const char*, amount_t> a, std::pair<const char*, amount_t> b) { return a.second > b.second; });
                         char string[256];
                         sprintf_s(string, 256, " %s - %s\n", it->second.name.c_str(), s.second.name.c_str());
                         m_Background->SetText(string);
@@ -232,10 +230,10 @@ void Deeps::Direct3DPresent(const RECT* pSourceRect, const RECT* pDestRect, HWND
 /**
  * @brief Starts from the font base and creates or deletes bars as necessary.
  *
- * @param deepsBase The base font background
+ * @param heepsBase The base font background
  * @param size The number of bars that should be displaying
  */
-void Deeps::RepairBars(IFontObject* deepsBase, uint8_t size)
+void Heeps::RepairBars(IFontObject* heepsBase, uint8_t size)
 {
     auto barCount = m_Bars.size();
     auto limit    = max(size, barCount);
@@ -243,7 +241,7 @@ void Deeps::RepairBars(IFontObject* deepsBase, uint8_t size)
     {
         barCount = m_Bars.size();
         char buffer[256];
-        sprintf_s(buffer, 256, "DeepsBar%d", barCount);
+        sprintf_s(buffer, 256, "HeepsBar%d", barCount);
         auto newBar = m_AshitaCore->GetFontManager()->Create(buffer);
         newBar->SetAutoResize(false);
         newBar->SetFontFamily("Arial");
@@ -254,7 +252,7 @@ void Deeps::RepairBars(IFontObject* deepsBase, uint8_t size)
         newBar->SetFontHeight(BAR_FONT_HEIGHT * m_GUIScale);
         newBar->GetBackground()->SetColor(D3DCOLOR_ARGB(0xFF, 0x00, 0x7C, 0x5C));
         newBar->GetBackground()->SetVisible(true);
-        sprintf_s(buffer, 256, "%s\\Resources\\Deeps\\bar.tga", m_AshitaCore->GetInstallPath());
+        sprintf_s(buffer, 256, "%s\\Resources\\Heeps\\bar.tga", m_AshitaCore->GetInstallPath());
         newBar->GetBackground()->SetTextureFromFile(buffer);
         newBar->GetBackground()->SetWidth(BAR_WIDTH * m_GUIScale);
         newBar->GetBackground()->SetHeight(BAR_HEIGHT * m_GUIScale);
@@ -285,7 +283,7 @@ void Deeps::RepairBars(IFontObject* deepsBase, uint8_t size)
     }
 }
 
-bool Deeps::OnClick(uint32_t uMsg, WPARAM wParam, LPARAM lParam, bool handled)
+bool Heeps::OnClick(uint32_t uMsg, WPARAM wParam, LPARAM lParam, bool handled)
 {
     int32_t xpos = GET_X_LPARAM(lParam);
     int32_t ypos = GET_Y_LPARAM(lParam);
@@ -316,7 +314,7 @@ bool Deeps::OnClick(uint32_t uMsg, WPARAM wParam, LPARAM lParam, bool handled)
         }
     }
 
-    // Don't block input if it didn't fall into the deeps object
+    // Don't block input if it didn't fall into the heeps object
     if (!m_Background->GetBackground()->HitTest(xpos, ypos))
         return false;
 
@@ -371,7 +369,7 @@ bool Deeps::OnClick(uint32_t uMsg, WPARAM wParam, LPARAM lParam, bool handled)
     return ((uMsg == 513) || (uMsg == 516));
 }
 
-bool Deeps::HitTestBar(IFontObject* bar, int32_t x, int32_t y)
+bool Heeps::HitTestBar(IFontObject* bar, int32_t x, int32_t y)
 {
     if (bar == nullptr)
         return false;
@@ -382,7 +380,7 @@ bool Deeps::HitTestBar(IFontObject* bar, int32_t x, int32_t y)
     return ((y >= min) && (y < max));
 }
 
-uint32_t Deeps::CheckColorSetting(uint32_t id, uint32_t randomColor)
+uint32_t Heeps::CheckColorSetting(uint32_t id, uint32_t randomColor)
 {
     if (this->m_JobColors == false)
         return randomColor;
@@ -402,7 +400,7 @@ uint32_t Deeps::CheckColorSetting(uint32_t id, uint32_t randomColor)
     return randomColor;
 }
 
-bool Deeps::CheckPartySetting(uint32_t id)
+bool Heeps::CheckPartySetting(uint32_t id)
 {
     if (this->m_PartyOnly == false)
         return true;

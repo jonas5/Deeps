@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 16
 VisualStudioVersion = 16.0.33130.400
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Deeps", "Deeps\Deeps.vcxproj", "{012F77AE-D2F5-4F5B-A531-DA4FF57494DA}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Heeps", "Heeps\Heeps.vcxproj", "{012F77AE-D2F5-4F5B-A531-DA4FF57494DA}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

@@ -15,8 +15,8 @@
 * along with Ashita.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef __ASHITA_DeepsDefines_H_INCLUDED__
-#define __ASHITA_DeepsDefines_H_INCLUDED__
+#ifndef __ASHITA_HeepsDefines_H_INCLUDED__
+#define __ASHITA_HeepsDefines_H_INCLUDED__
 
 #if defined(_MSC_VER) && (_MSC_VER >= 1020)
 #pragma once
@@ -93,22 +93,22 @@ enum MESSAGE
     MSG_ADD_EFFECT_DMG2 = 229,
 };
 
-// holds details about a specific damage source
-struct damage_t
+// holds details about a specific amount source
+struct amount_t
 {
     uint64_t total;
     uint32_t max;
     uint32_t min;
     uint32_t count;
 
-    damage_t()
+    amount_t()
     {
         total = 0;
         max   = 0;
         min   = 0;
         count = 0;
     }
-    bool operator>(const damage_t& o) const
+    bool operator>(const amount_t& o) const
     {
         return (count > o.count);
     }
@@ -118,11 +118,11 @@ struct damage_t
     }
 };
 
-// Container for an attack that tracks hit, miss, crit, evade, parry as damage types
+// Container for an attack that tracks hit, miss, crit, evade, parry as amount types
 struct source_t
 {
     std::string name;
-    std::map<const char*, damage_t> damage;
+    std::map<const char*, amount_t> amount;
     bool isMagic; // Used to ignore this source while getting hit rates
 
     source_t()
@@ -133,27 +133,27 @@ struct source_t
     uint64_t total() const
     {
         uint64_t tot = 0;
-        for (const auto d : damage)
+        for (const auto d : amount)
         {
             tot += d.second.total;
         }
         return tot;
     }
-    // Return the total number of times this damage source was used
+    // Return the total number of times this amount source was used
     uint64_t getCount() const
     {
         uint64_t count = 0;
-        for (const auto d : damage)
+        for (const auto d : amount)
         {
             count += d.second.count;
         }
         return count;
     }
-    // Return the count if this damage source is "Miss", otherwise return 0
+    // Return the count if this amount source is "Miss", otherwise return 0
     uint64_t getMissed() const
     {
         uint64_t missed = 0;
-        for (const auto d : damage)
+        for (const auto d : amount)
         {
             if (d.first == "Miss")
             {
@@ -177,7 +177,7 @@ struct entitysources_t
     uint32_t ownerid;   // Pet's owner ID; NULL if not a pet entity
     std::map<uint32_t, source_t> sources;
 
-    // Returns total damage dealt
+    // Returns total healing dealt
     uint64_t total() const
     {
         int64_t total = 0;
@@ -264,9 +264,6 @@ static const std::vector<D3DCOLOR> RandomColors = {
     D3DCOLOR_ARGB(255, 0, 123, 145)
 };
 
-static const std::vector<uint16_t> hitMessages   = {1, 2, 77, 132, 157, 161, 163, 185, 187, 197, 227, 264, 281, 317, 352, 413, 522, 576, 577};
-static const std::vector<uint16_t> critMessages  = {67, 252, 265, 274, 353, 379};
-static const std::vector<uint16_t> missMessages  = {15, 85, 158, 188, 245, 284, 324, 354};
-static const std::vector<uint16_t> evadeMessages = {14, 30, 31, 32, 33, 189, 248, 282, 283, 323, 355};
-static const std::vector<uint16_t> parryMessages = {69, 70};
-#endif // __ASHITA_DeepsDefines_H_INCLUDED__
+static const std::vector<uint16_t> healMessages = {120, 121, 122, 123, 124, 125, 128, 129, 130, 131, 132, 138, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 277};
+static const std::vector<uint16_t> critHealMessages = {278};
+#endif // __ASHITA_HeepsDefines_H_INCLUDED__
