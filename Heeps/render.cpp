@@ -130,7 +130,7 @@ void Heeps::Direct3DPresent(const RECT* pSourceRect, const RECT* pDestRect, HWND
             IFontObject* bar = m_Bars[i];
             if (iter->total() > max)
                 max = iter->total();
-            bar->GetBackground()->SetWidth(static_cast<uint32_t>((BAR_WIDTH * m_GUIScale) * (total == 0 ? 1 : ((float)iter->total() / (float)max))));
+            bar->GetBackground()->SetWidth(static_cast<uint32_t>((BAR_WIDTH * m_GUIScale) * (total == 0 ? 1.0f : ((float)iter->total() / (float)max))));
             bar->GetBackground()->SetColor(this->CheckColorSetting(iter->id, iter->color));
             char string[256];
             sprintf_s(string, 256, " %zu. %-10.10s %6llu (%03.1f%%)\n",
@@ -170,7 +170,7 @@ void Heeps::Direct3DPresent(const RECT* pSourceRect, const RECT* pDestRect, HWND
                     IFontObject* bar = m_Bars[i];
                     if (s.total() > max)
                         max = s.total();
-                    bar->GetBackground()->SetWidth(static_cast<uint32_t>((BAR_WIDTH * m_GUIScale) * (total == 0 ? 1 : ((float)s.total() / (float)max))));
+                    bar->GetBackground()->SetWidth(static_cast<uint32_t>((BAR_WIDTH * m_GUIScale) * (total == 0 ? 1.0f : ((float)s.total() / (float)max))));
                     bar->GetBackground()->SetColor(this->CheckColorSetting(it->first, it->second.color));
                     char string[256];
                     sprintf_s(string, 256, " %zu. %-10.10s %6llu (%03.1f%%)\n",
@@ -261,7 +261,7 @@ void Heeps::RepairBars(IFontObject* heepsBase, uint8_t size)
         {
             newBar->SetParent(m_Background);
             newBar->SetPositionX(static_cast<float>(BAR_HORIZONTAL_PADDING * m_GUIScale));
-            newBar->SetPositionY(static_cast<float>((TITLEBAR_HEIGHT * m_GUIScale) - (1 * m_GUIScale)));
+            newBar->SetPositionY(static_cast<float>((TITLEBAR_HEIGHT * m_GUIScale) - (1.0f * m_GUIScale)));
         }
         else
         {

@@ -53,9 +53,9 @@ const char* Heeps::GetName(void) const
     return "Heeps";
 }
 
-float Heeps::GetVersion(void) const
+double Heeps::GetVersion(void) const
 {
-    return 1.06f;
+    return 1.06;
 }
 
 /**
@@ -168,7 +168,7 @@ bool Heeps::HandleCommand(int32_t mode, const char* command, bool injected)
                     }
                 }
 
-                std::thread(&Heeps::Report, this, mode, max).detach();
+                std::thread([this, mode, max] { this->Report(mode, max); }).detach();
 
                 return true;
             }
