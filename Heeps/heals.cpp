@@ -34,6 +34,21 @@ bool Heeps::HandleIncomingPacket(uint16_t id, uint32_t size, const uint8_t* data
         m_Packets.pop_front();
     }
 
+    if (id == 0x28 || id == 0x20)
+    {
+        if (m_Debug)
+        {
+            std::stringstream ss;
+            ss << "Heeps Debug: Packet 0x" << std::hex << std::uppercase << id << " received. Size: " << std::dec << size << ". Data: ";
+            for (uint32_t i = 0; i < size; ++i)
+            {
+                ss << std::hex << std::uppercase << std::setw(2) << std::setfill('0') << static_cast<int>(data[i]) << " ";
+            }
+            m_AshitaCore->GetChatManager()->Write(-3, false, ss.str().c_str());
+            return false;
+        }
+    }
+
     if (id != 0x28)
     {
         return false;
