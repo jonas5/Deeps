@@ -264,6 +264,5 @@ static const std::vector<D3DCOLOR> RandomColors = {
     D3DCOLOR_ARGB(255, 0, 123, 145)
 };
 
-static const std::vector<uint16_t> healMessages = {120, 121, 122, 123, 124, 125, 128, 129, 130, 131, 132, 138, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 277};
-static const std::vector<uint16_t> critHealMessages = {278};
+static const std::vector<uint16_t> healMessages = {0x0A, 0x0B, 0x0C, 0x0D};
 #endif // __ASHITA_HeepsDefines_H_INCLUDED__
