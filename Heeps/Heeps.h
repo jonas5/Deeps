@@ -81,7 +81,7 @@ private:
     uint16_t GetIndexFromId(int id);
     source_t* GetHealSource(entitysources_t* entityInfo, uint8_t actionType, uint16_t actionID, bool isPet);
     bool IsParsedActionType(uint8_t actionType);
-    bool UpdateHealSource(source_t* source, uint16_t message, uint32_t amount);
+    void UpdateHealSource(source_t* source, uint16_t message, uint32_t amount);
 
     //main.cpp
     void Report(char mode, int max);

@@ -157,8 +157,13 @@ bool Heeps::HandleIncomingPacket(uint16_t id, uint32_t size, const uint8_t* data
                             m_AshitaCore->GetChatManager()->Writef(-3, false, "SpecEffect: %d Param: %d", specEffect, mainAmount);
                         }
 
-                        if (!UpdateHealSource(source, messageID, mainAmount))
-                            return false;
+                        if (hasAdditionalEffect)
+                        {
+                            addEffectAmount = (uint16_t)(Ashita::BinaryData::UnpackBitsBE((uint8_t*)data, startBit + 132, 16));
+                            addMessageID = (uint16_t)(Ashita::BinaryData::UnpackBitsBE((uint8_t*)data, startBit + 149, 10));
+                            UpdateHealSource(source, addMessageID, addEffectAmount);
+                            startBit += 37;
+                        }
 
                         startBit += 1;
                         if (hasSpikesEffect)
@@ -264,38 +269,26 @@ source_t* Heeps::GetHealSource(entitysources_t* entityInfo, uint8_t actionType, 
  * @param source The source_t to update
  * @param message The message ID from an incoming action packet
  * @param amount The amount value from an incoming action packet
- * @return true
- * @return false
  */
-bool Heeps::UpdateHealSource(source_t* source, uint16_t message, uint32_t amount)
+void Heeps::UpdateHealSource(source_t* source, uint16_t message, uint32_t amount)
 {
     amount_t* type = NULL;
-    bool val       = false;
     if (std::find(healMessages.begin(), healMessages.end(), message) != healMessages.end())
     {
         type = &source->amount["Heal"];
-        val  = true;
     }
     else if (std::find(critHealMessages.begin(), critHealMessages.end(), message) != critHealMessages.end())
     {
         type = &source->amount["CritHeal"];
-        val  = true;
     }
 
-    if (type)
+    if (type == NULL || amount == 0)
     {
-        amount = val ? amount : 0;
-        if (amount > 0)
-        {
-            type->total += amount;
-            type->count++;
-            if (type->min == 0)
-                type->min = amount;
-            else
-                type->min = (amount < type->min ? amount : type->min);
-            type->max = (amount > type->max ? amount : type->max);
-        }
-        return true;
+        return;
     }
-    return false;
+
+    type->total += amount;
+    type->count++;
+    type->min = (amount < type->min ? amount : type->min);
+    type->max = (amount > type->max ? amount : type->max);
 }

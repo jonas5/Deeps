@@ -105,7 +105,7 @@ struct amount_t
     {
         total = 0;
         max   = 0;
-        min   = 0;
+        min   = UINT32_MAX;
         count = 0;
     }
     bool operator>(const amount_t& o) const
