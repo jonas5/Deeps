@@ -1,6 +1,4 @@
 #include "Heeps.h"
-#include <sstream>
-#include <iomanip>
 
 /**
  * @brief Allows a plugin to attempt to handle an incoming packet.
@@ -34,136 +32,116 @@ bool Heeps::HandleIncomingPacket(uint16_t id, uint32_t size, const uint8_t* data
         m_Packets.pop_front();
     }
 
-    if (id != 0x28)
-    {
-        return false;
-    }
+    entitysources_t* entityInfo = NULL;
 
-    if (m_Debug)
+    if (id == 0x28) //action
     {
-        std::stringstream ss;
-        ss << "Heeps Debug: Packet 0x28 received. Size: " << size << ". Data: ";
-        for (uint32_t i = 0; i < size; ++i)
+        uint8_t targetNum  = Read8(data, 0x09);
+        uint8_t actionType = (uint8_t)(Ashita::BinaryData::UnpackBitsBE(const_cast<uint8_t*>(data), 82, 4));
+        uint16_t actionID = (uint16_t)(Ashita::BinaryData::UnpackBitsBE(const_cast<uint8_t*>(data), 86, 10));
+        uint8_t actionNum  = (uint8_t)(Ashita::BinaryData::UnpackBitsBE(const_cast<uint8_t*>(data), 182, 4));
+        uint32_t userID   = Read32(data, 0x05);
+        uint16_t startBit = 150;
+        uint16_t index = GetIndexFromId(userID);
+
+        if (userID == 0 || index == 0 || actionType == 0 || actionID == 0)
         {
-            ss << std::hex << std::uppercase << std::setw(2) << std::setfill('0') << static_cast<int>(data[i]) << " ";
+            return false;
         }
-        m_AshitaCore->GetChatManager()->Write(-3, false, ss.str().c_str());
-    }
 
-    uint8_t actionType = (uint8_t)Ashita::BinaryData::UnpackBitsBE(const_cast<uint8_t*>(data), 82, 4);
-    if (m_Debug) m_AshitaCore->GetChatManager()->Writef(-3, false, "Heeps Debug: ActionType: %u", actionType);
+        auto it = m_Entities.find(userID);
 
-    if (!IsParsedActionType(actionType))
-    {
-        if (m_Debug) m_AshitaCore->GetChatManager()->Write(-3, false, "Heeps Debug: ActionType not parsed. Skipping packet.");
-        return false;
-    }
-
-    uint32_t startBit = 0;
-    uint8_t targetCount = (uint8_t)Ashita::BinaryData::UnpackBitsBE(const_cast<uint8_t*>(data), startBit + 40, 4);
-    if (m_Debug) m_AshitaCore->GetChatManager()->Writef(-3, false, "Heeps Debug: TargetCount: %u", targetCount);
-
-    for (uint8_t i = 0; i < targetCount; ++i)
-    {
-        uint32_t targetBit = startBit + 44 + (i * 240);
-        uint32_t actorID = (uint32_t)Ashita::BinaryData::UnpackBitsBE(const_cast<uint8_t*>(data), targetBit, 32);
-
-        if (actorID == 0)
-            continue;
-
-        if (m_Debug) m_AshitaCore->GetChatManager()->Writef(-3, false, "Heeps Debug: Parsing Target %u/%u. ActorID: 0x%08X", i + 1, targetCount, actorID);
-
-        uint16_t index = GetIndexFromId(actorID);
-        if (index == 0)
-            continue;
-
-        entitysources_t* entityInfo = nullptr;
-        auto it = m_Entities.find(actorID);
         if (it != m_Entities.end())
         {
             entityInfo = &it->second;
-        }
-        else
-        {
-            if (actorID > 0x1000000)
-                continue;
+            uint16_t petIndex = m_AshitaCore->GetMemoryManager()->GetEntity()->GetPetTargetIndex(index);
+            uint32_t petID = m_AshitaCore->GetMemoryManager()->GetEntity()->GetServerId(petIndex);
 
-            entitysources_t newInfo;
-            auto name = m_AshitaCore->GetMemoryManager()->GetEntity()->GetName(index);
-            newInfo.name = name != nullptr ? name : "(Unknown)";
-            newInfo.color = RandomColors[rand() % RandomColors.size()];
-            newInfo.id = actorID;
-            newInfo.ownerid = NULL;
-            entityInfo = &m_Entities.insert(std::make_pair(actorID, newInfo)).first->second;
-        }
-
-        if (entityInfo == nullptr)
-            continue;
-
-        bool isPet = (entityInfo->ownerid != NULL);
-        uint16_t petIndex = m_AshitaCore->GetMemoryManager()->GetEntity()->GetPetTargetIndex(index);
-        uint32_t petID = m_AshitaCore->GetMemoryManager()->GetEntity()->GetServerId(petIndex);
-        if (petIndex > 0 && petID > 0)
-        {
-            auto petIt = m_Entities.find(petID);
-            if (petIt == m_Entities.end())
+            if (petIndex > 0 && petID > 0)
             {
                 entitysources_t newPetInfo;
                 auto name = m_AshitaCore->GetMemoryManager()->GetEntity()->GetName(petIndex);
-                newPetInfo.name = name != nullptr ? name : "(Unknown)";
-                newPetInfo.color = RandomColors[rand() % RandomColors.size()];
-                newPetInfo.id = petID;
-                newPetInfo.ownerid = actorID;
-                m_Entities.insert(std::make_pair(petID, newPetInfo));
+                newPetInfo.name        = name != nullptr ? name : "(Unknown)";
+                newPetInfo.color       = RandomColors[rand() % RandomColors.size()];
+                newPetInfo.id          = petID;
+                newPetInfo.ownerid     = userID;
+                m_Entities.insert(std::make_pair(petID, newPetInfo)).first->second;
             }
         }
-
-        if (isPet)
+        else
         {
-            auto petOwnerIndex = m_AshitaCore->GetMemoryManager()->GetEntity()->GetTrustOwnerTargetIndex(index);
-            if (petOwnerIndex != 0)
+            if (userID > 0x1000000)
             {
-                entityInfo->ownerid = m_AshitaCore->GetMemoryManager()->GetEntity()->GetServerId(petOwnerIndex);
+                return false;
             }
-            auto ownerIt = m_Entities.find(entityInfo->ownerid);
-            if (ownerIt != m_Entities.end())
-            {
-                entityInfo = &ownerIt->second;
-            }
-            else
-            {
-                continue;
-            }
+            entitysources_t newInfo;
+            auto name = m_AshitaCore->GetMemoryManager()->GetEntity()->GetName(index);
+            newInfo.name        = name != nullptr ? name : "(Unknown)";
+            newInfo.color       = RandomColors[rand() % RandomColors.size()];
+            newInfo.id          = userID;
+            newInfo.ownerid     = NULL;
+            entityInfo          = &m_Entities.insert(std::make_pair(userID, newInfo)).first->second;
         }
 
-        uint16_t actionID = (uint16_t)Ashita::BinaryData::UnpackBitsBE(const_cast<uint8_t*>(data), 86, 10);
-        if (m_Debug) m_AshitaCore->GetChatManager()->Writef(-3, false, "Heeps Debug: ActionID: %u", actionID);
-
-        source_t* source = GetHealSource(entityInfo, actionType, actionID, isPet);
-        if (source == nullptr)
-            continue;
-
-        uint8_t actionCount = (uint8_t)Ashita::BinaryData::UnpackBitsBE(const_cast<uint8_t*>(data), targetBit + 64, 4);
-        if (m_Debug) m_AshitaCore->GetChatManager()->Writef(-3, false, "Heeps Debug: ActionCount: %u", actionCount);
-
-        for (uint8_t j = 0; j < actionCount; ++j)
+        if (entityInfo)
         {
-            uint32_t actionBit = targetBit + 68 + (j * 192);
-
-            // Main action block
-            uint32_t mainAmount = (uint32_t)Ashita::BinaryData::UnpackBitsBE(const_cast<uint8_t*>(data), actionBit + 63, 17);
-            uint16_t messageID = (uint16_t)Ashita::BinaryData::UnpackBitsBE(const_cast<uint8_t*>(data), actionBit + 80, 10);
-            if (m_Debug) m_AshitaCore->GetChatManager()->Writef(-3, false, "Heeps Debug: Main Block - Amount: %u, MessageID: 0x%04X", mainAmount, messageID);
-            UpdateHealSource(source, messageID, mainAmount);
-
-            // Additional effect block
-            uint8_t hasAdditionalEffect = (uint8_t)Ashita::BinaryData::UnpackBitsBE(const_cast<uint8_t*>(data), actionBit + 128, 1);
-            if (hasAdditionalEffect)
+            bool isPet = false;
+            if (entityInfo->ownerid != NULL)
             {
-                uint16_t addEffectAmount = (uint16_t)Ashita::BinaryData::UnpackBitsBE(const_cast<uint8_t*>(data), actionBit + 132, 16);
-                uint16_t addMessageID = (uint16_t)Ashita::BinaryData::UnpackBitsBE(const_cast<uint8_t*>(data), actionBit + 149, 10);
-                if (m_Debug) m_AshitaCore->GetChatManager()->Writef(-3, false, "Heeps Debug: AddEffect Block - Amount: %u, MessageID: 0x%04X", addEffectAmount, addMessageID);
-                UpdateHealSource(source, addMessageID, addEffectAmount);
+                isPet = true;
+            }
+
+            if (isPet)
+            {
+                auto petOwnerIndex = m_AshitaCore->GetMemoryManager()->GetEntity()->GetTrustOwnerTargetIndex(index);
+                if (petOwnerIndex != 0)
+                {
+                    entityInfo->ownerid = m_AshitaCore->GetMemoryManager()->GetEntity()->GetServerId(petOwnerIndex);
+                }
+                auto it = m_Entities.find(entityInfo->ownerid);
+                if (it != m_Entities.end())
+                {
+                    entityInfo = &it->second;
+                }
+                else
+                {
+                    return false;
+                }
+            }
+
+            if (IsParsedActionType(actionType))
+            {
+                if (actionID == 0)
+                    return false;
+                source_t* source   = GetHealSource(entityInfo, actionType, actionID, isPet);
+
+                for (int i = 0; i < targetNum; i++)
+                {
+                    for (int j = 0; j < actionNum; j++)
+                    {
+                        uint32_t mainAmount    = (uint32_t)(Ashita::BinaryData::UnpackBitsBE(const_cast<uint8_t*>(data), startBit + 63, 17));
+                        uint16_t messageID     = (uint16_t)(Ashita::BinaryData::UnpackBitsBE(const_cast<uint8_t*>(data), startBit + 80, 10));
+                        UpdateHealSource(source, messageID, mainAmount);
+
+                        uint8_t hasAdditionalEffect = Ashita::BinaryData::UnpackBitsBE(const_cast<uint8_t*>(data), startBit + 121, 1) & 0x1;
+                        if (hasAdditionalEffect)
+                        {
+                            uint16_t addEffectAmount = (uint16_t)(Ashita::BinaryData::UnpackBitsBE(const_cast<uint8_t*>(data), startBit + 132, 16));
+                            uint16_t addMessageID = (uint16_t)(Ashita::BinaryData::UnpackBitsBE(const_cast<uint8_t*>(data), startBit + 149, 10));
+                            UpdateHealSource(source, addMessageID, addEffectAmount);
+                            startBit += 37;
+                        }
+
+                        startBit += 1;
+                        uint8_t hasSpikesEffect = Ashita::BinaryData::UnpackBitsBE(const_cast<uint8_t*>(data), startBit + 121, 1) & 0x1;
+                        if (hasSpikesEffect)
+                        {
+                            startBit += 34;
+                        }
+                        startBit += 86;
+                    }
+                    startBit += 36;
+                }
             }
         }
     }
@@ -270,11 +248,8 @@ void Heeps::UpdateHealSource(source_t* source, uint16_t message, uint32_t amount
 
     if (type == NULL || amount == 0)
     {
-        if (m_Debug) m_AshitaCore->GetChatManager()->Writef(-3, false, "Heeps Debug: UpdateHealSource - Skipping. Type: %s, Amount: %u", (type == NULL ? "NULL" : "Valid"), amount);
         return;
     }
-
-    if (m_Debug) m_AshitaCore->GetChatManager()->Writef(-3, false, "Heeps Debug: UpdateHealSource - RECORDING HEAL. Amount: %u, MessageID: 0x%04X", amount, message);
 
     type->total += amount;
     type->count++;
