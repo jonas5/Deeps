@@ -39,22 +39,7 @@ bool Heeps::HandleIncomingPacket(uint16_t id, uint32_t size, const uint8_t* data
         return false;
     }
 
-    if (m_Debug)
-    {
-        std::stringstream ss;
-        ss << "Heeps Debug: Packet 0x28 received. Size: " << size << ". Data: ";
-        for (uint32_t i = 0; i < size; ++i)
-        {
-            ss << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(data[i]) << " ";
-        }
-        m_AshitaCore->GetChatManager()->Write(-3, false, ss.str().c_str());
-    }
-
     uint8_t actionType = (uint8_t)Ashita::BinaryData::UnpackBitsBE(const_cast<uint8_t*>(data), 82, 4);
-    if (m_Debug)
-    {
-        m_AshitaCore->GetChatManager()->Writef(-3, false, "Heeps Debug: ActionType: %u", actionType);
-    }
     if (!IsParsedActionType(actionType))
     {
         return false;
@@ -62,10 +47,6 @@ bool Heeps::HandleIncomingPacket(uint16_t id, uint32_t size, const uint8_t* data
 
     uint32_t startBit = 0;
     uint8_t targetCount = (uint8_t)Ashita::BinaryData::UnpackBitsBE(const_cast<uint8_t*>(data), startBit + 40, 4);
-    if (m_Debug)
-    {
-        m_AshitaCore->GetChatManager()->Writef(-3, false, "Heeps Debug: TargetCount: %u", targetCount);
-    }
 
     for (uint8_t i = 0; i < targetCount; ++i)
     {
@@ -74,11 +55,6 @@ bool Heeps::HandleIncomingPacket(uint16_t id, uint32_t size, const uint8_t* data
 
         if (actorID == 0)
             continue;
-
-        if (m_Debug)
-        {
-            m_AshitaCore->GetChatManager()->Writef(-3, false, "Heeps Debug: Target %u/%u, ActorID: 0x%08X", i + 1, targetCount, actorID);
-        }
 
         uint16_t index = GetIndexFromId(actorID);
         if (index == 0)
@@ -149,26 +125,21 @@ bool Heeps::HandleIncomingPacket(uint16_t id, uint32_t size, const uint8_t* data
             continue;
 
         uint8_t actionCount = (uint8_t)Ashita::BinaryData::UnpackBitsBE(const_cast<uint8_t*>(data), targetBit + 64, 4);
-        if (m_Debug)
-        {
-            m_AshitaCore->GetChatManager()->Writef(-3, false, "Heeps Debug: ActionCount: %u", actionCount);
-        }
-
         for (uint8_t j = 0; j < actionCount; ++j)
         {
             uint32_t actionBit = targetBit + 68 + (j * 192);
-            uint8_t hasAdditionalEffect = (uint8_t)Ashita::BinaryData::UnpackBitsBE(const_cast<uint8_t*>(data), actionBit + 128, 1);
 
+            // Main action block
+            uint32_t mainAmount = (uint32_t)Ashita::BinaryData::UnpackBitsBE(const_cast<uint8_t*>(data), actionBit + 63, 17);
+            uint16_t messageID = (uint16_t)Ashita::BinaryData::UnpackBitsBE(const_cast<uint8_t*>(data), actionBit + 80, 10);
+            UpdateHealSource(source, messageID, mainAmount);
+
+            // Additional effect block
+            uint8_t hasAdditionalEffect = (uint8_t)Ashita::BinaryData::UnpackBitsBE(const_cast<uint8_t*>(data), actionBit + 128, 1);
             if (hasAdditionalEffect)
             {
                 uint16_t addEffectAmount = (uint16_t)Ashita::BinaryData::UnpackBitsBE(const_cast<uint8_t*>(data), actionBit + 132, 16);
                 uint16_t addMessageID = (uint16_t)Ashita::BinaryData::UnpackBitsBE(const_cast<uint8_t*>(data), actionBit + 149, 10);
-
-                if (m_Debug)
-                {
-                    m_AshitaCore->GetChatManager()->Writef(-3, false, "Heeps Debug: Action %u/%u, AddEffectAmount: %u, AddMessageID: 0x%04X", j + 1, actionCount, addEffectAmount, addMessageID);
-                }
-
                 UpdateHealSource(source, addMessageID, addEffectAmount);
             }
         }
