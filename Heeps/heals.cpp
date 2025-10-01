@@ -34,34 +34,34 @@ bool Heeps::HandleIncomingPacket(uint16_t id, uint32_t size, const uint8_t* data
         m_Packets.pop_front();
     }
 
-    if (id == 0x28 || id == 0x20)
-    {
-        if (m_Debug)
-        {
-            std::stringstream ss;
-            ss << "Heeps Debug: Packet 0x" << std::hex << std::uppercase << id << " received. Size: " << std::dec << size << ". Data: ";
-            for (uint32_t i = 0; i < size; ++i)
-            {
-                ss << std::hex << std::uppercase << std::setw(2) << std::setfill('0') << static_cast<int>(data[i]) << " ";
-            }
-            m_AshitaCore->GetChatManager()->Write(-3, false, ss.str().c_str());
-            return false;
-        }
-    }
-
     if (id != 0x28)
     {
         return false;
     }
 
+    if (m_Debug)
+    {
+        std::stringstream ss;
+        ss << "Heeps Debug: Packet 0x28 received. Size: " << size << ". Data: ";
+        for (uint32_t i = 0; i < size; ++i)
+        {
+            ss << std::hex << std::uppercase << std::setw(2) << std::setfill('0') << static_cast<int>(data[i]) << " ";
+        }
+        m_AshitaCore->GetChatManager()->Write(-3, false, ss.str().c_str());
+    }
+
     uint8_t actionType = (uint8_t)Ashita::BinaryData::UnpackBitsBE(const_cast<uint8_t*>(data), 82, 4);
+    if (m_Debug) m_AshitaCore->GetChatManager()->Writef(-3, false, "Heeps Debug: ActionType: %u", actionType);
+
     if (!IsParsedActionType(actionType))
     {
+        if (m_Debug) m_AshitaCore->GetChatManager()->Write(-3, false, "Heeps Debug: ActionType not parsed. Skipping packet.");
         return false;
     }
 
     uint32_t startBit = 0;
     uint8_t targetCount = (uint8_t)Ashita::BinaryData::UnpackBitsBE(const_cast<uint8_t*>(data), startBit + 40, 4);
+    if (m_Debug) m_AshitaCore->GetChatManager()->Writef(-3, false, "Heeps Debug: TargetCount: %u", targetCount);
 
     for (uint8_t i = 0; i < targetCount; ++i)
     {
@@ -70,6 +70,8 @@ bool Heeps::HandleIncomingPacket(uint16_t id, uint32_t size, const uint8_t* data
 
         if (actorID == 0)
             continue;
+
+        if (m_Debug) m_AshitaCore->GetChatManager()->Writef(-3, false, "Heeps Debug: Parsing Target %u/%u. ActorID: 0x%08X", i + 1, targetCount, actorID);
 
         uint16_t index = GetIndexFromId(actorID);
         if (index == 0)
@@ -135,11 +137,15 @@ bool Heeps::HandleIncomingPacket(uint16_t id, uint32_t size, const uint8_t* data
         }
 
         uint16_t actionID = (uint16_t)Ashita::BinaryData::UnpackBitsBE(const_cast<uint8_t*>(data), 86, 10);
+        if (m_Debug) m_AshitaCore->GetChatManager()->Writef(-3, false, "Heeps Debug: ActionID: %u", actionID);
+
         source_t* source = GetHealSource(entityInfo, actionType, actionID, isPet);
         if (source == nullptr)
             continue;
 
         uint8_t actionCount = (uint8_t)Ashita::BinaryData::UnpackBitsBE(const_cast<uint8_t*>(data), targetBit + 64, 4);
+        if (m_Debug) m_AshitaCore->GetChatManager()->Writef(-3, false, "Heeps Debug: ActionCount: %u", actionCount);
+
         for (uint8_t j = 0; j < actionCount; ++j)
         {
             uint32_t actionBit = targetBit + 68 + (j * 192);
@@ -147,6 +153,7 @@ bool Heeps::HandleIncomingPacket(uint16_t id, uint32_t size, const uint8_t* data
             // Main action block
             uint32_t mainAmount = (uint32_t)Ashita::BinaryData::UnpackBitsBE(const_cast<uint8_t*>(data), actionBit + 63, 17);
             uint16_t messageID = (uint16_t)Ashita::BinaryData::UnpackBitsBE(const_cast<uint8_t*>(data), actionBit + 80, 10);
+            if (m_Debug) m_AshitaCore->GetChatManager()->Writef(-3, false, "Heeps Debug: Main Block - Amount: %u, MessageID: 0x%04X", mainAmount, messageID);
             UpdateHealSource(source, messageID, mainAmount);
 
             // Additional effect block
@@ -155,6 +162,7 @@ bool Heeps::HandleIncomingPacket(uint16_t id, uint32_t size, const uint8_t* data
             {
                 uint16_t addEffectAmount = (uint16_t)Ashita::BinaryData::UnpackBitsBE(const_cast<uint8_t*>(data), actionBit + 132, 16);
                 uint16_t addMessageID = (uint16_t)Ashita::BinaryData::UnpackBitsBE(const_cast<uint8_t*>(data), actionBit + 149, 10);
+                if (m_Debug) m_AshitaCore->GetChatManager()->Writef(-3, false, "Heeps Debug: AddEffect Block - Amount: %u, MessageID: 0x%04X", addEffectAmount, addMessageID);
                 UpdateHealSource(source, addMessageID, addEffectAmount);
             }
         }
@@ -262,8 +270,11 @@ void Heeps::UpdateHealSource(source_t* source, uint16_t message, uint32_t amount
 
     if (type == NULL || amount == 0)
     {
+        if (m_Debug) m_AshitaCore->GetChatManager()->Writef(-3, false, "Heeps Debug: UpdateHealSource - Skipping. Type: %s, Amount: %u", (type == NULL ? "NULL" : "Valid"), amount);
         return;
     }
+
+    if (m_Debug) m_AshitaCore->GetChatManager()->Writef(-3, false, "Heeps Debug: UpdateHealSource - RECORDING HEAL. Amount: %u, MessageID: 0x%04X", amount, message);
 
     type->total += amount;
     type->count++;
