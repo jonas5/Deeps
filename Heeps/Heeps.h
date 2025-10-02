@@ -35,6 +35,7 @@
 #include <thread>
 #include <windowsx.h>
 #include "Defines.h"
+#include "ffxi/packets/action.h"
 
 /**
  * @brief Our Main Plugin Class
