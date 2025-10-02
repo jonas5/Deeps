@@ -1,6 +1,4 @@
 #include "Heeps.h"
-#include <sstream>
-#include <iomanip>
 
 /**
  * @brief Allows a plugin to attempt to handle an incoming packet.
@@ -38,17 +36,6 @@ bool Heeps::HandleIncomingPacket(uint16_t id, uint32_t size, const uint8_t* data
     if (id != 0x28)
         return false;
 
-    if (m_Debug)
-    {
-        std::stringstream ss;
-        ss << "Heeps Debug: Packet 0x28 received. Size: " << size << ". Data: ";
-        for (uint32_t i = 0; i < size; ++i)
-        {
-            ss << std::hex << std::uppercase << std::setw(2) << std::setfill('0') << static_cast<int>(data[i]) << " ";
-        }
-        m_AshitaCore->GetChatManager()->Write(-3, false, ss.str().c_str());
-    }
-
     // Unpack the action packet data..
     uint8_t targetNum  = Read8(data, 0x09);
     uint8_t actionType = (uint8_t)(Ashita::BinaryData::UnpackBitsBE(const_cast<uint8_t*>(data), 82, 4));
@@ -58,17 +45,8 @@ bool Heeps::HandleIncomingPacket(uint16_t id, uint32_t size, const uint8_t* data
     uint16_t startBit = 150;
     uint16_t index = GetIndexFromId(userID);
 
-    if (m_Debug)
-    {
-        m_AshitaCore->GetChatManager()->Writef(-3, false, "Heeps Debug: Unpacked Header -> UserID: 0x%08X, ActionType: %u, ActionID: %u, TargetNum: %u, ActionNum: %u",
-            userID, actionType, actionID, targetNum, actionNum);
-    }
-
     if (userID == 0 || index == 0)
-    {
-        if (m_Debug) m_AshitaCore->GetChatManager()->Write(-3, false, "Heeps Debug: Invalid UserID or Index. Skipping.");
         return false;
-    }
 
     // Get the entity that performed the action..
     entitysources_t* entityInfo = nullptr;
@@ -76,7 +54,6 @@ bool Heeps::HandleIncomingPacket(uint16_t id, uint32_t size, const uint8_t* data
     if (it != m_Entities.end())
     {
         entityInfo = &it->second;
-        if (m_Debug) m_AshitaCore->GetChatManager()->Writef(-3, false, "Heeps Debug: Found existing entity for ActorID 0x%08X.", userID);
     }
     else
     {
@@ -90,12 +67,9 @@ bool Heeps::HandleIncomingPacket(uint16_t id, uint32_t size, const uint8_t* data
         newInfo.id = userID;
         newInfo.ownerid = NULL;
         entityInfo = &m_Entities.insert(std::make_pair(userID, newInfo)).first->second;
-        if (m_Debug) m_AshitaCore->GetChatManager()->Writef(-3, false, "Heeps Debug: Created new entity for ActorID 0x%08X.", userID);
     }
     if (entityInfo == nullptr)
         return false;
-
-    if (m_Debug) m_AshitaCore->GetChatManager()->Writef(-3, false, "Heeps Debug: Actor is '%s'.", entityInfo->name.c_str());
 
     // Handle pet ownership..
     bool isPet = (entityInfo->ownerid != NULL);
@@ -125,10 +99,7 @@ bool Heeps::HandleIncomingPacket(uint16_t id, uint32_t size, const uint8_t* data
             entityInfo->ownerid = m_AshitaCore->GetMemoryManager()->GetEntity()->GetServerId(petOwnerIndex);
         auto ownerIt = m_Entities.find(entityInfo->ownerid);
         if (ownerIt != m_Entities.end())
-        {
             entityInfo = &ownerIt->second;
-            if (m_Debug) m_AshitaCore->GetChatManager()->Writef(-3, false, "Heeps Debug: Actor is a pet. Attributing to owner '%s'.", entityInfo->name.c_str());
-        }
         else
             return false;
     }
@@ -136,13 +107,9 @@ bool Heeps::HandleIncomingPacket(uint16_t id, uint32_t size, const uint8_t* data
     // If this is a parsable action, get the source and loop through the actions..
     if (IsParsedActionType(actionType))
     {
-        if (m_Debug) m_AshitaCore->GetChatManager()->Writef(-3, false, "Heeps Debug: ActionType %u is parsable. Getting source.", actionType);
-
         source_t* source = GetHealSource(entityInfo, actionType, actionID, isPet);
         if (source == nullptr)
             return false;
-
-        if (m_Debug) m_AshitaCore->GetChatManager()->Writef(-3, false, "Heeps Debug: Source is '%s'. Looping targets/actions.", source->name.c_str());
 
         for (int i = 0; i < targetNum; i++)
         {
@@ -150,7 +117,6 @@ bool Heeps::HandleIncomingPacket(uint16_t id, uint32_t size, const uint8_t* data
             {
                 uint32_t mainAmount = (uint32_t)Ashita::BinaryData::UnpackBitsBE(const_cast<uint8_t*>(data), startBit + 63, 17);
                 uint16_t messageID = (uint16_t)Ashita::BinaryData::UnpackBitsBE(const_cast<uint8_t*>(data), startBit + 80, 10);
-                if (m_Debug) m_AshitaCore->GetChatManager()->Writef(-3, false, "Heeps Debug: [T%d A%d] Main Block -> Amount: %u, MessageID: 0x%04X", i, j, mainAmount, messageID);
                 UpdateHealSource(source, messageID, mainAmount);
 
                 uint8_t hasAdditionalEffect = Ashita::BinaryData::UnpackBitsBE(const_cast<uint8_t*>(data), startBit + 121, 1) & 0x1;
@@ -158,7 +124,6 @@ bool Heeps::HandleIncomingPacket(uint16_t id, uint32_t size, const uint8_t* data
                 {
                     uint16_t addEffectAmount = (uint16_t)Ashita::BinaryData::UnpackBitsBE(const_cast<uint8_t*>(data), startBit + 132, 16);
                     uint16_t addMessageID = (uint16_t)Ashita::BinaryData::UnpackBitsBE(const_cast<uint8_t*>(data), startBit + 149, 10);
-                    if (m_Debug) m_AshitaCore->GetChatManager()->Writef(-3, false, "Heeps Debug: [T%d A%d] AddEffect Block -> Amount: %u, MessageID: 0x%04X", i, j, addEffectAmount, addMessageID);
                     UpdateHealSource(source, addMessageID, addEffectAmount);
                     startBit += 37;
                 }
@@ -172,17 +137,14 @@ bool Heeps::HandleIncomingPacket(uint16_t id, uint32_t size, const uint8_t* data
             startBit += 36;
         }
     }
-    else
-    {
-        if (m_Debug) m_AshitaCore->GetChatManager()->Writef(-3, false, "Heeps Debug: ActionType %u is not parsable. Skipping.", actionType);
-    }
     return false;
 }
 
 // Returns true if given actionType matches one of the ones we're parsing
 bool Heeps::IsParsedActionType(uint8_t actionType)
 {
-    return ((actionType == ACTIONTYPE_CAST_FINISH) ||
+    return ((actionType == ACTIONTYPE_RA_FINISH) ||
+            (actionType == ACTIONTYPE_CAST_FINISH) ||
             (actionType == ACTIONTYPE_ITEM_FINISH) ||
             (actionType == ACTIONTYPE_JA) ||
             (actionType == ACTIONTYPE_AVATAR_BP_FINISH) ||
@@ -230,6 +192,7 @@ source_t* Heeps::GetHealSource(entitysources_t* entityInfo, uint8_t actionType, 
             switch (actionType)
             {
                 case ACTIONTYPE_CAST_FINISH:
+                case ACTIONTYPE_RA_FINISH: // Re-using for self-targeted spells
                     newsource.name.append(m_AshitaCore->GetResourceManager()->GetSpellById(actionID)->Name[2]);
                     newsource.isMagic = true;
                     break;
@@ -255,22 +218,16 @@ source_t* Heeps::GetHealSource(entitysources_t* entityInfo, uint8_t actionType, 
 
 void Heeps::UpdateHealSource(source_t* source, uint16_t message, uint32_t amount)
 {
-    if (m_Debug) m_AshitaCore->GetChatManager()->Writef(-3, false, "Heeps Debug: UpdateHealSource called with MessageID: 0x%04X, Amount: %u", message, amount);
-
     amount_t* type = nullptr;
-    if (std::find(healMessages.begin(), healMessages.end(), message) != healMessages.end())
+    if ((std::find(healMessages.begin(), healMessages.end(), message) != healMessages.end()) || (message == 0 && amount > 0))
     {
-        if (m_Debug) m_AshitaCore->GetChatManager()->Write(-3, false, "Heeps Debug: MessageID is a healing message.");
         type = &source->amount["Heal"];
     }
 
     if (type == NULL || amount == 0)
     {
-        if (m_Debug) m_AshitaCore->GetChatManager()->Writef(-3, false, "Heeps Debug: UpdateHealSource - Skipping. Type is %s, Amount is %u.", (type == NULL ? "NULL" : "Valid"), amount);
         return;
     }
-
-    if (m_Debug) m_AshitaCore->GetChatManager()->Writef(-3, false, "Heeps Debug: UpdateHealSource - RECORDING HEAL for source '%s'. Amount: %u", source->name.c_str(), amount);
 
     type->total += amount;
     type->count++;
