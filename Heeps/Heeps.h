@@ -35,7 +35,6 @@
 #include <thread>
 #include <windowsx.h>
 #include "Defines.h"
-#include "D:\HorizonXI\Game\plugins\sdk\ffxi\packets\action.h"
 
 /**
  * @brief Our Main Plugin Class
