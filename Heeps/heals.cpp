@@ -264,6 +264,10 @@ source_t* Heeps::GetHealSource(entitysources_t* entityInfo, uint8_t actionType, 
 
 void Heeps::UpdateHealSource(source_t* source, uint16_t message, uint32_t amount)
 {
+    if (m_Debug)
+    {
+        m_AshitaCore->GetChatManager()->Writef(-3, false, "Heeps Debug: UpdateHealSource -> MessageID: %u, Amount: %u", message, amount);
+    }
     amount_t* type = nullptr;
     if ((std::find(healMessages.begin(), healMessages.end(), message) != healMessages.end()) || (message == 0 && amount > 0))
     {
