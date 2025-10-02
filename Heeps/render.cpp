@@ -223,7 +223,7 @@ void Heeps::Direct3DPresent(const RECT* pSourceRect, const RECT* pDestRect, HWND
             }
         }
     }
-    m_Background->GetBackground()->SetHeight(m_Bars.size() * (BAR_BACKGROUND_HEIGHT * m_GUIScale) + (TITLEBAR_HEIGHT * m_GUIScale));
+    m_Background->GetBackground()->SetHeight(static_cast<float>(m_Bars.size()) * (BAR_BACKGROUND_HEIGHT * m_GUIScale) + (TITLEBAR_HEIGHT * m_GUIScale));
     m_LastRender = clock();
 }
 
