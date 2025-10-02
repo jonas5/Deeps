@@ -17,13 +17,15 @@
 
 #include "Heeps.h"
 //Global pointer for callback to use
-Heeps* g_Heeps = NULL;
+Heeps* g_Heeps = nullptr;
 
 /**
  * Global function to serve as mouse callback
  */
 BOOL __stdcall g_OnClick(uint32_t uMsg, WPARAM wParam, LPARAM lParam, bool handled)
 {
+    if (g_Heeps == nullptr)
+        return false;
     return g_Heeps->OnClick(uMsg, wParam, lParam, handled);
 }
 
@@ -34,17 +36,23 @@ void Heeps::Direct3DRelease(void)
 {
     m_AshitaCore->GetInputManager()->GetMouse()->RemoveCallback("heeps_click");
 
-    m_AshitaCore->GetConfigurationManager()->SetValue("Heeps", "guipos", "xpos", std::to_string(m_Background->GetPositionX()).c_str());
-    m_AshitaCore->GetConfigurationManager()->SetValue("Heeps", "guipos", "ypos", std::to_string(m_Background->GetPositionY()).c_str());
+    if (m_Background != nullptr)
+    {
+        m_AshitaCore->GetConfigurationManager()->SetValue("Heeps", "guipos", "xpos", std::to_string(m_Background->GetPositionX()).c_str());
+        m_AshitaCore->GetConfigurationManager()->SetValue("Heeps", "guipos", "ypos", std::to_string(m_Background->GetPositionY()).c_str());
+        m_AshitaCore->GetFontManager()->Delete(m_Background->GetAlias());
+        m_Background = nullptr;
+    }
     m_AshitaCore->GetConfigurationManager()->SetValue("Heeps", "tvmode", "enabled", std::to_string(m_TVMode).c_str());
     m_AshitaCore->GetConfigurationManager()->Save("Heeps", "Heeps");
-
-    m_AshitaCore->GetFontManager()->Delete(m_Background->GetAlias());
 
     while (!m_Bars.empty())
     {
         auto bar = m_Bars.back();
-        m_AshitaCore->GetFontManager()->Delete(bar->GetAlias());
+        if (bar != nullptr)
+        {
+            m_AshitaCore->GetFontManager()->Delete(bar->GetAlias());
+        }
         m_Bars.pop_back();
     }
 }
@@ -72,6 +80,7 @@ bool Heeps::Direct3DInitialize(IDirect3DDevice8* device)
     m_GUIScale = m_AshitaCore->GetConfigurationManager()->GetBool("Heeps", "tvmode", "enabled", false) ? 1.5f : 1.0f;
 
     m_Background = m_AshitaCore->GetFontManager()->Create("HeepsBackground");
+    if (m_Background == nullptr) return false;
     m_Background->SetFontFamily("Arial");
     m_Background->SetFontHeight(static_cast<uint32_t>(TITLE_FONT_HEIGHT * m_GUIScale));
     m_Background->SetAutoResize(false);
@@ -100,6 +109,9 @@ void Heeps::Direct3DPresent(const RECT* pSourceRect, const RECT* pDestRect, HWND
     {
         return;
     }
+
+    if (m_Background == nullptr)
+        return;
 
     // Making sure the background heights and widths are good for when the size toggle is switched
     m_Background->SetFontHeight(static_cast<uint32_t>(TITLE_FONT_HEIGHT * m_GUIScale));
@@ -186,9 +198,9 @@ void Heeps::Direct3DPresent(const RECT* pSourceRect, const RECT* pDestRect, HWND
                 {
                     if (s.second.name == m_SourceInfo)
                     {
-                        std::vector<std::pair<const char*, amount_t>> temp;
+                        std::vector<std::pair<std::string, amount_t>> temp;
                         uint32_t count = 0;
-                        for (const auto d : s.second.amount)
+                        for (const auto& d : s.second.amount)
                         {
                             if (d.second.count != 0 && temp.size() < 15)
                             {
@@ -197,7 +209,7 @@ void Heeps::Direct3DPresent(const RECT* pSourceRect, const RECT* pDestRect, HWND
                             }
                         }
 
-                        std::sort(temp.begin(), temp.end(), [](std::pair<const char*, amount_t> a, std::pair<const char*, amount_t> b) { return a.second > b.second; });
+                        std::sort(temp.begin(), temp.end(), [](std::pair<std::string, amount_t> a, std::pair<std::string, amount_t> b) { return a.second > b.second; });
                         char string[256];
                         sprintf_s(string, 256, " %s - %s\n", it->second.name.c_str(), s.second.name.c_str());
                         m_Background->SetText(string);
@@ -213,7 +225,7 @@ void Heeps::Direct3DPresent(const RECT* pSourceRect, const RECT* pDestRect, HWND
                             bar->GetBackground()->SetWidth((BAR_WIDTH * m_GUIScale) * (count == 0 ? 1.0f : 1.0f * ((float)s.second.count / (float)max)));
                             bar->GetBackground()->SetColor(this->CheckColorSetting(it->first, it->second.color));
                             char string[256];
-                            sprintf_s(string, 256, " %-5sCnt:%4d  Avg:%5d  Max:%5d (%3.1f%%)\n", s.first, s.second.count, s.second.avg(), s.second.max, count == 0 ? 0.0f : 100.0f * ((float)s.second.count / (float)count));
+                            sprintf_s(string, 256, " %-5sCnt:%4d  Avg:%5d  Max:%5d (%3.1f%%)\n", s.first.c_str(), s.second.count, s.second.avg(), s.second.max, count == 0 ? 0.0f : 100.0f * ((float)s.second.count / (float)count));
                             bar->SetText(string);
                             i++;
                         }
@@ -242,6 +254,7 @@ void Heeps::RepairBars(IFontObject* heepsBase, uint8_t size)
         char buffer[256];
         sprintf_s(buffer, 256, "HeepsBar%zu", barCount);
         auto newBar = m_AshitaCore->GetFontManager()->Create(buffer);
+        if (newBar == nullptr) continue;
         newBar->SetAutoResize(false);
         newBar->SetFontFamily("Arial");
         if (m_TVMode)
@@ -251,8 +264,10 @@ void Heeps::RepairBars(IFontObject* heepsBase, uint8_t size)
         newBar->SetFontHeight(static_cast<uint32_t>(BAR_FONT_HEIGHT * m_GUIScale));
         newBar->GetBackground()->SetColor(D3DCOLOR_ARGB(0xFF, 0x00, 0x7C, 0x5C));
         newBar->GetBackground()->SetVisible(true);
-        sprintf_s(buffer, 256, "%s\\Resources\\Heeps\\bar.tga", m_AshitaCore->GetInstallPath());
-        newBar->GetBackground()->SetTextureFromFile(buffer);
+        char texturePath[MAX_PATH];
+        sprintf_s(texturePath, sizeof(texturePath), "%s\\Resources\\Heeps\\bar.tga", m_AshitaCore->GetInstallPath());
+        if (m_AshitaCore->GetFileManager()->FileExists(texturePath))
+            newBar->GetBackground()->SetTextureFromFile(texturePath);
         newBar->GetBackground()->SetWidth(BAR_WIDTH * m_GUIScale);
         newBar->GetBackground()->SetHeight(BAR_HEIGHT * m_GUIScale);
         newBar->SetVisible(true);
@@ -265,10 +280,13 @@ void Heeps::RepairBars(IFontObject* heepsBase, uint8_t size)
         }
         else
         {
-            newBar->SetParent(m_Bars[barCount - 1]);
-            newBar->SetAnchorParent(Ashita::FrameAnchor::BottomLeft);
-            newBar->SetPositionX(0);
-            newBar->SetPositionY(BETWEEN_BAR_PADDING * m_GUIScale);
+            if (m_Bars[barCount - 1] != nullptr)
+            {
+                newBar->SetParent(m_Bars[barCount - 1]);
+                newBar->SetAnchorParent(Ashita::FrameAnchor::BottomLeft);
+                newBar->SetPositionX(0);
+                newBar->SetPositionY(BETWEEN_BAR_PADDING * m_GUIScale);
+            }
         }
         m_Bars.push_back(newBar);
     }
@@ -276,8 +294,11 @@ void Heeps::RepairBars(IFontObject* heepsBase, uint8_t size)
     while (m_Bars.size() > size)
     {
         auto bar = m_Bars.back();
-        bar->SetParent(nullptr);
-        m_AshitaCore->GetFontManager()->Delete(bar->GetAlias());
+        if (bar != nullptr)
+        {
+            bar->SetParent(nullptr);
+            m_AshitaCore->GetFontManager()->Delete(bar->GetAlias());
+        }
         m_Bars.pop_back();
     }
 }
@@ -286,6 +307,9 @@ bool Heeps::OnClick(uint32_t uMsg, WPARAM wParam, LPARAM lParam, bool handled)
 {
     int32_t xpos = GET_X_LPARAM(lParam);
     int32_t ypos = GET_Y_LPARAM(lParam);
+
+    if (m_Background == nullptr)
+        return false;
 
     if (m_Drag)
     {
@@ -329,7 +353,7 @@ bool Heeps::OnClick(uint32_t uMsg, WPARAM wParam, LPARAM lParam, bool handled)
                     auto name = m_ClickMap.find(*iter);
                     if (name != m_ClickMap.end())
                     {
-                        for (auto entity : m_Entities)
+                        for (auto& entity : m_Entities)
                         {
                             if (entity.second.name == name->second)
                             {
@@ -374,6 +398,7 @@ bool Heeps::HitTestBar(IFontObject* bar, int32_t x, int32_t y)
         return false;
 
     auto bg = bar->GetBackground();
+    if (bg == nullptr) return false;
     auto min = bg->GetPositionY();
     auto max = min + bg->GetHeight();
     return ((y >= min) && (y < max));
@@ -386,12 +411,13 @@ uint32_t Heeps::CheckColorSetting(uint32_t id, uint32_t randomColor)
 
     // Check if we have an available job for the player (Job can be 0 if person is anon!!)
     IParty* party = m_AshitaCore->GetMemoryManager()->GetParty();
+    if (party == nullptr) return randomColor;
     for (int i = 0; i < 18; i++)
     {
         if (party->GetMemberServerId(i) == id)
         {
             auto job = party->GetMemberMainJob(i);
-            if (job >= 0)
+            if (job >= 0 && job < (sizeof(JobColors)/sizeof(JobColors[0])))
                 return JobColors[job];
             break;
         }
@@ -405,6 +431,7 @@ bool Heeps::CheckPartySetting(uint32_t id)
         return true;
 
     IParty* party = m_AshitaCore->GetMemoryManager()->GetParty();
+    if (party == nullptr) return false;
     for (int i = 0; i < 18; i++)
     {
         if (party->GetMemberServerId(i) == id)

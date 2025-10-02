@@ -21,9 +21,9 @@
  * @brief Constructor and Deconstructor
  */
 Heeps::Heeps(void)
-    : m_AshitaCore(NULL)
+    : m_AshitaCore(nullptr)
     , m_PluginId(0)
-    , m_Direct3DDevice(NULL)
+    , m_Direct3DDevice(nullptr)
     , m_Debug(false)
     , m_JobColors(true)
     , m_MaxBars(15)
@@ -55,7 +55,7 @@ const char* Heeps::GetName(void) const
 
 double Heeps::GetVersion(void) const
 {
-    return 1.06;
+    return 1.07;
 }
 
 /**
@@ -95,7 +95,7 @@ bool Heeps::Initialize(IAshitaCore* core, ILogManager* log, uint32_t id)
 	this->m_PluginId = id;
 	this->m_LogManager = log;
     this->m_LastRender = clock();
-    srand(static_cast<unsigned int>(time(NULL)));
+    srand(static_cast<unsigned int>(time(nullptr)));
     m_CharInfo = 0;
 	m_AshitaCore->GetConfigurationManager()->Load("Heeps", "Heeps");
 
@@ -269,7 +269,7 @@ bool Heeps::HandleCommand(int32_t mode, const char* command, bool injected)
         out << Ashita::Chat::Header("Heeps");
         out << Ashita::Chat::Color2(2, "/hps test");
         out << Ashita::Chat::Message(" - Injects test data to verify rendering.");
-        m_AshitaCore->GetChatManager()->Write(0, false, out.str().c_str());
+        m_AshitaCore->GetChatManager()->Write(0, false, out.str().c_c_str());
         out = std::stringstream();
         out << Ashita::Chat::Header("Heeps");
         out << Ashita::Chat::Color2(2, "/hps jobcolors");
@@ -297,7 +297,7 @@ void Heeps::Report(char mode, int max)
         char buff[256];
         if (mode != 0x00)
         {
-            sprintf_s(buff, 256, "/%c %s", mode, m_Background->GetText());
+            sprintf_s(buff, sizeof(buff), "/%c %s", mode, m_Background->GetText());
             m_AshitaCore->GetChatManager()->QueueCommand(1, buff);
         }
         for (size_t i = 0; i < m_Bars.size(); i++)
@@ -309,7 +309,7 @@ void Heeps::Report(char mode, int max)
             IFontObject* bar = m_Bars[i];
             if ((bar != nullptr) && (mode != 0x00))
             {
-                sprintf_s(buff, 256, "/%c %s", mode, bar->GetText());
+                sprintf_s(buff, sizeof(buff), "/%c %s", mode, bar->GetText());
                 m_AshitaCore->GetChatManager()->QueueCommand(1, buff);
             }
         }
