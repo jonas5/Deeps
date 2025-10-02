@@ -41,7 +41,7 @@
  * @note    The main class of your plugin MUST use PluginBase as a base class. This is the
  *          internal base class that Ashita uses to communicate with your plugin!
  */
-class Heeps : IPlugin
+class Heeps : public IPlugin
 {
     // Internal class variables
 	IAshitaCore*          m_AshitaCore;
@@ -86,7 +86,6 @@ private:
     void Report(char mode, int max);
 
     //render.cpp
-    void Direct3DRelease(void);
     void RepairBars(IFontObject* heepsBase, uint8_t size);
     uint32_t CheckColorSetting(uint32_t id, uint32_t random);
     bool CheckPartySetting(uint32_t id);
@@ -106,9 +105,9 @@ public:
 
     //render.cpp
     bool Direct3DInitialize(IDirect3DDevice8* device) override;
-	void Direct3DRelease(void) override;
+    void Direct3DRelease(void) override;
     void Direct3DRender(void) override;
-    bool OnClick(uint32_t uMsg, WPARAM wParam, LPARAM lParam, bool handled);
+    bool OnClick(UINT uMsg, WPARAM wParam, LPARAM lParam);
 };
 
 /**

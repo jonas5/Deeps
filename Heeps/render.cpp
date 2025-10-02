@@ -1,20 +1,3 @@
-/**
-* Copyright (c) 2011-2014 - Ashita Development Team
-*
-* Ashita is free software: you can redistribute it and/or modify
-* it under the terms of the GNU General Public License as published by
-* the Free Software Foundation, either version 3 of the License, or
-* (at your option) any later version.
-*
-* Ashita is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-* GNU General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with Ashita.  If not, see <http://www.gnu.org/licenses/>.
-*/
-
 #include "Heeps.h"
 //Global pointer for callback to use
 Heeps* g_Heeps = nullptr;
@@ -85,7 +68,7 @@ bool Heeps::Direct3DInitialize(IDirect3DDevice8* device)
     m_Background->SetFontHeight(static_cast<uint32_t>(TITLE_FONT_HEIGHT * m_GUIScale));
     m_Background->SetAutoResize(false);
     m_Background->GetBackground()->SetColor(D3DCOLOR_ARGB(0xCC, 0x00, 0x00, 0x00));
-    m_Background->GetBackground()->SetVisible(true);
+    m_Background->GetBackground()->SetVisibility(true);
     m_Background->GetBackground()->SetWidth(WINDOW_WIDTH * m_GUIScale);
     m_Background->GetBackground()->SetHeight(TITLEBAR_HEIGHT * m_GUIScale);
     m_Background->SetColor(D3DCOLOR_ARGB(0xFF, 0xFF, 0xFF, 0xFF));
@@ -93,7 +76,7 @@ bool Heeps::Direct3DInitialize(IDirect3DDevice8* device)
     m_Background->SetText("");
     m_Background->SetPositionX(xpos);
     m_Background->SetPositionY(ypos);
-    m_Background->SetVisible(true);
+    m_Background->SetVisibility(true);
 
     m_AshitaCore->GetInputManager()->GetKeyboard()->AddCallback("heeps_click", nullptr, nullptr, nullptr, (LPVOID)g_OnClick);
 
@@ -258,13 +241,13 @@ void Heeps::RepairBars(IFontObject* heepsBase, uint8_t size)
         newBar->SetBold(m_TVMode);
         newBar->SetFontHeight(static_cast<uint32_t>(BAR_FONT_HEIGHT * m_GUIScale));
         newBar->GetBackground()->SetColor(D3DCOLOR_ARGB(0xFF, 0x00, 0x7C, 0x5C));
-        newBar->GetBackground()->SetVisible(true);
+        newBar->GetBackground()->SetVisibility(true);
         char texturePath[MAX_PATH];
         sprintf_s(texturePath, sizeof(texturePath), "%s\\Resources\\Heeps\\bar.tga", m_AshitaCore->GetAshitaInstallPathA());
         newBar->GetBackground()->SetTextureFromFile(texturePath);
         newBar->GetBackground()->SetWidth(BAR_WIDTH * m_GUIScale);
         newBar->GetBackground()->SetHeight(BAR_HEIGHT * m_GUIScale);
-        newBar->SetVisible(true);
+        newBar->SetVisibility(true);
         if (barCount == 0)
         {
             newBar->SetParent(m_Background);
@@ -276,7 +259,7 @@ void Heeps::RepairBars(IFontObject* heepsBase, uint8_t size)
             if (m_Bars[barCount - 1] != nullptr)
             {
                 newBar->SetParent(m_Bars[barCount - 1]);
-                newBar->SetAnchorParent(Ashita::FrameAnchor::BottomLeft);
+                newBar->SetAnchorParent((uint32_t)Ashita::FrameAnchor::BottomLeft);
                 newBar->SetPositionX(0);
                 newBar->SetPositionY(BETWEEN_BAR_PADDING * m_GUIScale);
             }
@@ -296,7 +279,7 @@ void Heeps::RepairBars(IFontObject* heepsBase, uint8_t size)
     }
 }
 
-bool Heeps::OnClick(uint32_t uMsg, WPARAM wParam, LPARAM lParam)
+bool Heeps::OnClick(UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
     int32_t xpos = GET_X_LPARAM(lParam);
     int32_t ypos = GET_Y_LPARAM(lParam);
