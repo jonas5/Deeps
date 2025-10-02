@@ -266,8 +266,7 @@ void Heeps::RepairBars(IFontObject* heepsBase, uint8_t size)
         newBar->GetBackground()->SetVisible(true);
         char texturePath[MAX_PATH];
         sprintf_s(texturePath, sizeof(texturePath), "%s\\Resources\\Heeps\\bar.tga", m_AshitaCore->GetInstallPath());
-        if (m_AshitaCore->GetFileManager()->FileExists(texturePath))
-            newBar->GetBackground()->SetTextureFromFile(texturePath);
+        newBar->GetBackground()->SetTextureFromFile(texturePath);
         newBar->GetBackground()->SetWidth(BAR_WIDTH * m_GUIScale);
         newBar->GetBackground()->SetHeight(BAR_HEIGHT * m_GUIScale);
         newBar->SetVisible(true);

@@ -269,7 +269,7 @@ bool Heeps::HandleCommand(int32_t mode, const char* command, bool injected)
         out << Ashita::Chat::Header("Heeps");
         out << Ashita::Chat::Color2(2, "/hps test");
         out << Ashita::Chat::Message(" - Injects test data to verify rendering.");
-        m_AshitaCore->GetChatManager()->Write(0, false, out.str().c_c_str());
+        m_AshitaCore->GetChatManager()->Write(0, false, out.str().c_str());
         out = std::stringstream();
         out << Ashita::Chat::Header("Heeps");
         out << Ashita::Chat::Color2(2, "/hps jobcolors");
