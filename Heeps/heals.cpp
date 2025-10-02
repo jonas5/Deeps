@@ -46,7 +46,7 @@ bool Heeps::HandleIncomingPacket(uint16_t id, uint32_t size, const uint8_t* data
         {
             ss << std::hex << std::uppercase << std::setw(2) << std::setfill('0') << static_cast<int>(data[i]) << " ";
         }
-        m_LogManager->Log((uint32_t)Ashita::LogLevel::Debug, "Heeps", ss.str().c_str());
+        m_LogManager->Log((uint32_t)Ashita::LogLevel::Critical, "Heeps", ss.str().c_str());
     }
 
     // Unpack the action packet data..
@@ -60,13 +60,13 @@ bool Heeps::HandleIncomingPacket(uint16_t id, uint32_t size, const uint8_t* data
 
     if (m_Debug)
     {
-        m_LogManager->Logf((uint32_t)Ashita::LogLevel::Debug, "Heeps", "Unpacked Header -> UserID: 0x%08X, ActionType: %u, ActionID: %u, TargetNum: %u, ActionNum: %u",
+        m_LogManager->Logf((uint32_t)Ashita::LogLevel::Critical, "Heeps", "Unpacked Header -> UserID: 0x%08X, ActionType: %u, ActionID: %u, TargetNum: %u, ActionNum: %u",
             userID, actionType, actionID, targetNum, actionNum);
     }
 
     if (userID == 0 || index == 0)
     {
-        if (m_Debug) m_LogManager->Log((uint32_t)Ashita::LogLevel::Debug, "Heeps", "Invalid UserID or Index. Skipping.");
+        if (m_Debug) m_LogManager->Log((uint32_t)Ashita::LogLevel::Critical, "Heeps", "Invalid UserID or Index. Skipping.");
         return false;
     }
 
@@ -76,7 +76,7 @@ bool Heeps::HandleIncomingPacket(uint16_t id, uint32_t size, const uint8_t* data
     if (it != m_Entities.end())
     {
         entityInfo = &it->second;
-        if (m_Debug) m_LogManager->Logf((uint32_t)Ashita::LogLevel::Debug, "Heeps", "Found existing entity for ActorID 0x%08X.", userID);
+        if (m_Debug) m_LogManager->Logf((uint32_t)Ashita::LogLevel::Critical, "Heeps", "Found existing entity for ActorID 0x%08X.", userID);
     }
     else
     {
@@ -90,12 +90,12 @@ bool Heeps::HandleIncomingPacket(uint16_t id, uint32_t size, const uint8_t* data
         newInfo.id = userID;
         newInfo.ownerid = NULL;
         entityInfo = &m_Entities.insert(std::make_pair(userID, newInfo)).first->second;
-        if (m_Debug) m_LogManager->Logf((uint32_t)Ashita::LogLevel::Debug, "Heeps", "Created new entity for ActorID 0x%08X.", userID);
+        if (m_Debug) m_LogManager->Logf((uint32_t)Ashita::LogLevel::Critical, "Heeps", "Created new entity for ActorID 0x%08X.", userID);
     }
     if (entityInfo == nullptr)
         return false;
 
-    if (m_Debug) m_LogManager->Logf((uint32_t)Ashita::LogLevel::Debug, "Heeps", "Actor is '%s'.", entityInfo->name.c_str());
+    if (m_Debug) m_LogManager->Logf((uint32_t)Ashita::LogLevel::Critical, "Heeps", "Actor is '%s'.", entityInfo->name.c_str());
 
     // Handle pet ownership..
     bool isPet = (entityInfo->ownerid != NULL);
@@ -127,7 +127,7 @@ bool Heeps::HandleIncomingPacket(uint16_t id, uint32_t size, const uint8_t* data
         if (ownerIt != m_Entities.end())
         {
             entityInfo = &ownerIt->second;
-            if (m_Debug) m_LogManager->Logf((uint32_t)Ashita::LogLevel::Debug, "Heeps", "Actor is a pet. Attributing to owner '%s'.", entityInfo->name.c_str());
+            if (m_Debug) m_LogManager->Logf((uint32_t)Ashita::LogLevel::Critical, "Heeps", "Actor is a pet. Attributing to owner '%s'.", entityInfo->name.c_str());
         }
         else
             return false;
@@ -136,13 +136,13 @@ bool Heeps::HandleIncomingPacket(uint16_t id, uint32_t size, const uint8_t* data
     // If this is a parsable action, get the source and loop through the actions..
     if (IsParsedActionType(actionType))
     {
-        if (m_Debug) m_LogManager->Logf((uint32_t)Ashita::LogLevel::Debug, "Heeps", "ActionType %u is parsable. Getting source.", actionType);
+        if (m_Debug) m_LogManager->Logf((uint32_t)Ashita::LogLevel::Critical, "Heeps", "ActionType %u is parsable. Getting source.", actionType);
 
         source_t* source = GetHealSource(entityInfo, actionType, actionID, isPet);
         if (source == nullptr)
             return false;
 
-        if (m_Debug) m_LogManager->Logf((uint32_t)Ashita::LogLevel::Debug, "Heeps", "Source is '%s'. Looping targets/actions.", source->name.c_str());
+        if (m_Debug) m_LogManager->Logf((uint32_t)Ashita::LogLevel::Critical, "Heeps", "Source is '%s'. Looping targets/actions.", source->name.c_str());
 
         for (int i = 0; i < targetNum; i++)
         {
@@ -150,7 +150,7 @@ bool Heeps::HandleIncomingPacket(uint16_t id, uint32_t size, const uint8_t* data
             {
                 uint32_t mainAmount = (uint32_t)Ashita::BinaryData::UnpackBitsBE(const_cast<uint8_t*>(data), startBit + 63, 17);
                 uint16_t messageID = (uint16_t)Ashita::BinaryData::UnpackBitsBE(const_cast<uint8_t*>(data), startBit + 80, 10);
-                if (m_Debug) m_LogManager->Logf((uint32_t)Ashita::LogLevel::Debug, "Heeps", "[T%d A%d] Main Block -> Amount: %u, MessageID: 0x%04X", i, j, mainAmount, messageID);
+                if (m_Debug) m_LogManager->Logf((uint32_t)Ashita::LogLevel::Critical, "Heeps", "[T%d A%d] Main Block -> Amount: %u, MessageID: 0x%04X", i, j, mainAmount, messageID);
                 UpdateHealSource(source, messageID, mainAmount);
 
                 uint8_t hasAdditionalEffect = Ashita::BinaryData::UnpackBitsBE(const_cast<uint8_t*>(data), startBit + 121, 1) & 0x1;
@@ -158,7 +158,7 @@ bool Heeps::HandleIncomingPacket(uint16_t id, uint32_t size, const uint8_t* data
                 {
                     uint16_t addEffectAmount = (uint16_t)Ashita::BinaryData::UnpackBitsBE(const_cast<uint8_t*>(data), startBit + 132, 16);
                     uint16_t addMessageID = (uint16_t)Ashita::BinaryData::UnpackBitsBE(const_cast<uint8_t*>(data), startBit + 149, 10);
-                    if (m_Debug) m_LogManager->Logf((uint32_t)Ashita::LogLevel::Debug, "Heeps", "[T%d A%d] AddEffect Block -> Amount: %u, MessageID: 0x%04X", i, j, addEffectAmount, addMessageID);
+                    if (m_Debug) m_LogManager->Logf((uint32_t)Ashita::LogLevel::Critical, "Heeps", "[T%d A%d] AddEffect Block -> Amount: %u, MessageID: 0x%04X", i, j, addEffectAmount, addMessageID);
                     UpdateHealSource(source, addMessageID, addEffectAmount);
                     startBit += 37;
                 }
@@ -174,7 +174,7 @@ bool Heeps::HandleIncomingPacket(uint16_t id, uint32_t size, const uint8_t* data
     }
     else
     {
-        if (m_Debug) m_LogManager->Logf((uint32_t)Ashita::LogLevel::Debug, "Heeps", "ActionType %u is not parsable. Skipping.", actionType);
+        if (m_Debug) m_LogManager->Logf((uint32_t)Ashita::LogLevel::Critical, "Heeps", "ActionType %u is not parsable. Skipping.", actionType);
     }
     return false;
 }
@@ -210,7 +210,7 @@ uint16_t Heeps::GetIndexFromId(int id)
 
 source_t* Heeps::GetHealSource(entitysources_t* entityInfo, uint8_t actionType, uint16_t actionID, bool isPet)
 {
-    if (m_Debug) m_LogManager->Logf((uint32_t)Ashita::LogLevel::Debug, "Heeps", "GetHealSource called with ActionType: %u, ActionID: %u", actionType, actionID);
+    if (m_Debug) m_LogManager->Logf((uint32_t)Ashita::LogLevel::Critical, "Heeps", "GetHealSource called with ActionType: %u, ActionID: %u", actionType, actionID);
 
     uint32_t key;
     if (isPet)
@@ -225,16 +225,16 @@ source_t* Heeps::GetHealSource(entitysources_t* entityInfo, uint8_t actionType, 
 
     if (sourcesIt != entityInfo->sources.end())
     {
-        if (m_Debug) m_LogManager->Log((uint32_t)Ashita::LogLevel::Debug, "Heeps", "Found existing source.");
+        if (m_Debug) m_LogManager->Log((uint32_t)Ashita::LogLevel::Critical, "Heeps", "Found existing source.");
         return &sourcesIt->second;
     }
     else
     {
-        if (m_Debug) m_LogManager->Log((uint32_t)Ashita::LogLevel::Debug, "Heeps", "Creating new source.");
+        if (m_Debug) m_LogManager->Log((uint32_t)Ashita::LogLevel::Critical, "Heeps", "Creating new source.");
         source_t newsource;
         if (isPet)
         {
-            if (m_Debug) m_LogManager->Log((uint32_t)Ashita::LogLevel::Debug, "Heeps", "GetHealSource -> Source is a Pet.");
+            if (m_Debug) m_LogManager->Log((uint32_t)Ashita::LogLevel::Critical, "Heeps", "GetHealSource -> Source is a Pet.");
             newsource.name.append("Pet");
         }
         else
@@ -242,28 +242,28 @@ source_t* Heeps::GetHealSource(entitysources_t* entityInfo, uint8_t actionType, 
             switch (actionType)
             {
                 case ACTIONTYPE_CAST_FINISH:
-                    if (m_Debug) m_LogManager->Log((uint32_t)Ashita::LogLevel::Debug, "Heeps", "GetHealSource -> >>> ACTIONTYPE_CAST_FINISH triggered! <<<");
+                    if (m_Debug) m_LogManager->Log((uint32_t)Ashita::LogLevel::Critical, "Heeps", "GetHealSource -> >>> ACTIONTYPE_CAST_FINISH triggered! <<<");
                     newsource.name.append(m_AshitaCore->GetResourceManager()->GetSpellById(actionID)->Name[2]);
                     newsource.isMagic = true;
                     break;
                 case ACTIONTYPE_ITEM_FINISH:
-                    if (m_Debug) m_LogManager->Log((uint32_t)Ashita::LogLevel::Debug, "Heeps", "GetHealSource -> ACTIONTYPE_ITEM_FINISH triggered.");
+                    if (m_Debug) m_LogManager->Log((uint32_t)Ashita::LogLevel::Critical, "Heeps", "GetHealSource -> ACTIONTYPE_ITEM_FINISH triggered.");
                     newsource.name.append(m_AshitaCore->GetResourceManager()->GetItemById(actionID)->Name[0]);
                     break;
                 case ACTIONTYPE_JA:
                 case ACTIONTYPE_JA_DNC:
                 case ACTIONTYPE_JA_RUN:
-                    if (m_Debug) m_LogManager->Log((uint32_t)Ashita::LogLevel::Debug, "Heeps", "GetHealSource -> ACTIONTYPE_JA triggered.");
+                    if (m_Debug) m_LogManager->Log((uint32_t)Ashita::LogLevel::Critical, "Heeps", "GetHealSource -> ACTIONTYPE_JA triggered.");
                     newsource.name.append(m_AshitaCore->GetResourceManager()->GetAbilityById(actionID + 512)->Name[2]);
                     break;
                 case ACTIONTYPE_AVATAR_BP_FINISH:
                 case ACTIONTYPE_WS_FINISH:
                 case ACTIONTYPE_NPC_TP_FINISH:
-                     if (m_Debug) m_LogManager->Log((uint32_t)Ashita::LogLevel::Debug, "Heeps", "GetHealSource -> WEAPONSKILL/AVATAR action triggered.");
+                     if (m_Debug) m_LogManager->Log((uint32_t)Ashita::LogLevel::Critical, "Heeps", "GetHealSource -> WEAPONSKILL/AVATAR action triggered.");
                      newsource.name.append(m_AshitaCore->GetResourceManager()->GetAbilityById(actionID)->Name[2]);
                      break;
                 default:
-                     if (m_Debug) m_LogManager->Logf((uint32_t)Ashita::LogLevel::Debug, "Heeps", "GetHealSource -> Unhandled ActionType: %u", actionType);
+                     if (m_Debug) m_LogManager->Logf((uint32_t)Ashita::LogLevel::Critical, "Heeps", "GetHealSource -> Unhandled ActionType: %u", actionType);
                      newsource.name.append("Unknown");
                      break;
             }
@@ -274,22 +274,22 @@ source_t* Heeps::GetHealSource(entitysources_t* entityInfo, uint8_t actionType, 
 
 void Heeps::UpdateHealSource(source_t* source, uint16_t message, uint32_t amount)
 {
-    if (m_Debug) m_LogManager->Logf((uint32_t)Ashita::LogLevel::Debug, "Heeps", "UpdateHealSource called with MessageID: 0x%04X, Amount: %u", message, amount);
+    if (m_Debug) m_LogManager->Logf((uint32_t)Ashita::LogLevel::Critical, "Heeps", "UpdateHealSource called with MessageID: 0x%04X, Amount: %u", message, amount);
 
     amount_t* type = nullptr;
     if ((std::find(healMessages.begin(), healMessages.end(), message) != healMessages.end()) || (message == 0 && amount > 0))
     {
-        if (m_Debug) m_LogManager->Log((uint32_t)Ashita::LogLevel::Debug, "Heeps", "MessageID is a healing message.");
+        if (m_Debug) m_LogManager->Log((uint32_t)Ashita::LogLevel::Critical, "Heeps", "MessageID is a healing message.");
         type = &source->amount["Heal"];
     }
 
     if (type == NULL || amount == 0)
     {
-        if (m_Debug) m_LogManager->Logf((uint32_t)Ashita::LogLevel::Debug, "Heeps", "UpdateHealSource - Skipping. Type is %s, Amount is %u.", (type == NULL ? "NULL" : "Valid"), amount);
+        if (m_Debug) m_LogManager->Logf((uint32_t)Ashita::LogLevel::Critical, "Heeps", "UpdateHealSource - Skipping. Type is %s, Amount is %u.", (type == NULL ? "NULL" : "Valid"), amount);
         return;
     }
 
-    if (m_Debug) m_LogManager->Logf((uint32_t)Ashita::LogLevel::Debug, "Heeps", "UpdateHealSource - RECORDING HEAL for source '%s'. Amount: %u", source->name.c_str(), amount);
+    if (m_Debug) m_LogManager->Logf((uint32_t)Ashita::LogLevel::Critical, "Heeps", "UpdateHealSource - RECORDING HEAL for source '%s'. Amount: %u", source->name.c_str(), amount);
 
     type->total += amount;
     type->count++;
