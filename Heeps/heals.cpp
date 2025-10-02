@@ -1,4 +1,6 @@
 #include "Heeps.h"
+#include <sstream>
+#include <iomanip>
 
 /**
  * @brief Allows a plugin to attempt to handle an incoming packet.
@@ -46,7 +48,9 @@ bool Heeps::HandleIncomingPacket(uint16_t id, uint32_t size, const uint8_t* data
     uint16_t index = GetIndexFromId(userID);
 
     if (userID == 0 || index == 0)
+    {
         return false;
+    }
 
     // Get the entity that performed the action..
     entitysources_t* entityInfo = nullptr;
@@ -143,6 +147,9 @@ bool Heeps::HandleIncomingPacket(uint16_t id, uint32_t size, const uint8_t* data
 // Returns true if given actionType matches one of the ones we're parsing
 bool Heeps::IsParsedActionType(uint8_t actionType)
 {
+    if (m_Debug)
+        return true;
+
     return ((actionType == ACTIONTYPE_MELEE) ||
             (actionType == ACTIONTYPE_RA_FINISH) ||
             (actionType == ACTIONTYPE_WS_FINISH) ||
@@ -168,6 +175,8 @@ uint16_t Heeps::GetIndexFromId(int id)
 
 source_t* Heeps::GetHealSource(entitysources_t* entityInfo, uint8_t actionType, uint16_t actionID, bool isPet)
 {
+    if (m_Debug) m_AshitaCore->GetChatManager()->Writef(-3, false, "Heeps Debug: GetHealSource called with ActionType: %u, ActionID: %u", actionType, actionID);
+
     uint32_t key;
     if (isPet)
     {
@@ -181,34 +190,42 @@ source_t* Heeps::GetHealSource(entitysources_t* entityInfo, uint8_t actionType, 
 
     if (sourcesIt != entityInfo->sources.end())
     {
+        if (m_Debug) m_AshitaCore->GetChatManager()->Write(-3, false, "Heeps Debug: Found existing source.");
         return &sourcesIt->second;
     }
     else
     {
+        if (m_Debug) m_AshitaCore->GetChatManager()->Write(-3, false, "Heeps Debug: Creating new source.");
         source_t newsource;
         if (isPet)
         {
+            if (m_Debug) m_AshitaCore->GetChatManager()->Write(-3, false, "Heeps Debug: Source is a Pet.");
             newsource.name.append("Pet");
         }
         else if (actionType == ACTIONTYPE_CAST_FINISH)
         {
+            if (m_Debug) m_AshitaCore->GetChatManager()->Write(-3, false, "Heeps Debug: >>> ACTIONTYPE_CAST_FINISH triggered! <<<");
             newsource.name.append(m_AshitaCore->GetResourceManager()->GetSpellById(actionID)->Name[2]);
             newsource.isMagic = true;
         }
         else if (actionType == ACTIONTYPE_ITEM_FINISH)
         {
+            if (m_Debug) m_AshitaCore->GetChatManager()->Write(-3, false, "Heeps Debug: ACTIONTYPE_ITEM_FINISH triggered.");
             newsource.name.append(m_AshitaCore->GetResourceManager()->GetItemById(actionID)->Name[0]);
         }
         else if (actionType == ACTIONTYPE_JA || actionType == ACTIONTYPE_JA_DNC || actionType == ACTIONTYPE_JA_RUN)
         {
+            if (m_Debug) m_AshitaCore->GetChatManager()->Write(-3, false, "Heeps Debug: ACTIONTYPE_JA triggered.");
             newsource.name.append(m_AshitaCore->GetResourceManager()->GetAbilityById(actionID + 512)->Name[2]);
         }
         else if (actionType == ACTIONTYPE_AVATAR_BP_FINISH || actionType == ACTIONTYPE_WS_FINISH || actionType == ACTIONTYPE_NPC_TP_FINISH)
         {
+             if (m_Debug) m_AshitaCore->GetChatManager()->Write(-3, false, "Heeps Debug: WEAPONSKILL/AVATAR action triggered.");
              newsource.name.append(m_AshitaCore->GetResourceManager()->GetAbilityById(actionID)->Name[2]);
         }
         else
         {
+             if (m_Debug) m_AshitaCore->GetChatManager()->Writef(-3, false, "Heeps Debug: Unknown or unhandled ActionType %u triggered.", actionType);
              newsource.name.append("Unknown");
         }
         return &entityInfo->sources.insert(std::make_pair(key, newsource)).first->second;
