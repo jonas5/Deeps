@@ -145,6 +145,55 @@ bool Heeps::HandleCommand(int32_t mode, const char* command, bool injected)
                 m_CharInfo = 0;
                 return true;
             }
+            else if (args[1] == "test")
+            {
+                m_Entities.clear();
+                m_SourceInfo.clear();
+                m_CharInfo = 0;
+
+                // Create Test Healer 1
+                entitysources_t healer1;
+                healer1.name = "TestHealer1";
+                healer1.id = 1;
+                healer1.color = D3DCOLOR_ARGB(255, 255, 0, 0);
+
+                source_t cure4;
+                cure4.name = "Cure IV";
+                cure4.amount["Heal"].total = 1500;
+                cure4.amount["Heal"].count = 5;
+                cure4.amount["Heal"].min = 280;
+                cure4.amount["Heal"].max = 320;
+                healer1.sources.insert(std::make_pair(123, cure4));
+
+                source_t cure3;
+                cure3.name = "Cure III";
+                cure3.amount["Heal"].total = 800;
+                cure3.amount["Heal"].count = 8;
+                cure3.amount["Heal"].min = 90;
+                cure3.amount["Heal"].max = 110;
+                healer1.sources.insert(std::make_pair(456, cure3));
+
+                m_Entities.insert(std::make_pair(healer1.id, healer1));
+
+                // Create Test Healer 2
+                entitysources_t healer2;
+                healer2.name = "TestHealer2";
+                healer2.id = 2;
+                healer2.color = D3DCOLOR_ARGB(255, 0, 255, 0);
+
+                source_t waltz;
+                waltz.name = "Curing Waltz";
+                waltz.amount["Heal"].total = 2500;
+                waltz.amount["Heal"].count = 10;
+                waltz.amount["Heal"].min = 240;
+                waltz.amount["Heal"].max = 260;
+                healer2.sources.insert(std::make_pair(789, waltz));
+
+                m_Entities.insert(std::make_pair(healer2.id, healer2));
+
+                m_AshitaCore->GetChatManager()->Writef(0, false, "%s%s", Ashita::Chat::Header("Heeps").c_str(), Ashita::Chat::Message("Test data loaded.").c_str());
+                return true;
+            }
             else if (args[1] == "report")
             {
                 char mode = 0x00;
@@ -215,6 +264,11 @@ bool Heeps::HandleCommand(int32_t mode, const char* command, bool injected)
         out << Ashita::Chat::Header("Heeps");
         out << Ashita::Chat::Color2(2, "/hps report [s/p/l] [#]");
         out << Ashita::Chat::Message(" - Report healing data to say, party, or linkshell.");
+        m_AshitaCore->GetChatManager()->Write(0, false, out.str().c_str());
+        out = std::stringstream();
+        out << Ashita::Chat::Header("Heeps");
+        out << Ashita::Chat::Color2(2, "/hps test");
+        out << Ashita::Chat::Message(" - Injects test data to verify rendering.");
         m_AshitaCore->GetChatManager()->Write(0, false, out.str().c_str());
         out = std::stringstream();
         out << Ashita::Chat::Header("Heeps");
