@@ -27,7 +27,7 @@ Heeps::Heeps(void)
     , m_Debug(false)
     , m_JobColors(true)
     , m_MaxBars(15)
-    , m_PartyOnly(true)
+    , m_PartyOnly(false)
     , m_TVMode(false)
     , m_GUIScale(1.0f)
 { }
