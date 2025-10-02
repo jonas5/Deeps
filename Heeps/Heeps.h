@@ -25,8 +25,7 @@
 /**
  * @brief Required includes for an extension.
  */
-// #include "C:\code\Ashita-v4beta\plugins\sdk\Ashita.h"
-#include "D:\HorizonXI\Game\plugins\sdk\Ashita.h"
+#include "Ashita.h"
 #include <algorithm>
 #include <functional>
 #include <list>
@@ -74,7 +73,7 @@ class Heeps : IPlugin
     int32_t               m_LastX;
     int32_t               m_LastY;
 
-    std::clock_t          m_LastRender;
+    DWORD                 m_LastRender;
 
 private:
     //heals.cpp
@@ -97,28 +96,26 @@ public:
     //main.cpp
     Heeps(void);
     virtual ~Heeps(void);
-    uint32_t GetFlags(void) const;
-    const char* GetName(void) const;
-    double GetVersion(void) const;
-    const char* GetAuthor(void) const;
-    const char* GetDescription(void) const;
-    bool Initialize(IAshitaCore* core, ILogManager* log, uint32_t id);
-    void Release(void);
-    bool HandleCommand(int32_t mode, const char* command, bool injected);
+	plugininfo_t GetPluginInfo(void) override;
+    bool Initialize(IAshitaCore* core, ILogManager* log, uint32_t id) override;
+    void Release(void) override;
+    bool HandleCommand(const char* command, int32_t type) override;
 
     //heals.cpp
-	bool HandleIncomingPacket(uint16_t id, uint32_t size, const uint8_t* data, uint8_t* modified, uint32_t sizeChunk, const uint8_t* dataChunk, bool injected, bool blocked);
+	bool HandleIncomingPacket(uint16_t id, uint32_t size, void* data, void* modified, bool blocked) override;
 
     //render.cpp
     bool Direct3DInitialize(IDirect3DDevice8* device) override;
-    void Direct3DPresent(const RECT* pSourceRect, const RECT* pDestRect, HWND hDestWindowOverride, const RGNDATA* pDirtyRegion) override;
+	void Direct3DRelease(void) override;
+    void Direct3DRender(void) override;
     bool OnClick(uint32_t uMsg, WPARAM wParam, LPARAM lParam, bool handled);
 };
 
 /**
  * @brief Required Plugin Exports
  */
-__declspec(dllexport) double     __stdcall expGetInterfaceVersion(void);
-__declspec(dllexport) IPlugin*   __stdcall expCreatePlugin(const char* args);
+extern "C" __declspec(dllexport) IPlugin* __stdcall CreatePlugin(void);
+extern "C" __declspec(dllexport) double __stdcall GetInterfaceVersion(void);
+extern "C" __declspec(dllexport) void __stdcall CreatePluginInfo(plugininfo_t* info);
 
 #endif // __ASHITA_Heeps_H_INCLUDED__

@@ -35,47 +35,13 @@ Heeps::~Heeps(void)
 { }
 
 /**
- * @brief Gets the PluginFlags this plugin uses.
- *
- */
-uint32_t Heeps::GetFlags(void) const
+* @brief Returns the information about the plugin.
+*
+* @return {plugininfo_t} The plugin information structure.
+*/
+plugininfo_t Heeps::GetPluginInfo(void)
 {
-    return (uint32_t)Ashita::PluginFlags::LegacyDirect3D;
-}
-
-/**
- * @brief Gets the name of the plugin.
- *
- * @return const char* The name of the plugin
- */
-const char* Heeps::GetName(void) const
-{
-    return "Heeps";
-}
-
-double Heeps::GetVersion(void) const
-{
-    return 1.07;
-}
-
-/**
- * @brief Gets the author of the plugin.
- *
- * @return const char* The authors name.
- */
-const char* Heeps::GetAuthor(void) const
-{
-    return "Relliko, kjLotus";
-}
-
-/**
- * @brief Gets the plugin description.
- *
- * @return const char* Plugin description.
- */
-const char* Heeps::GetDescription(void) const
-{
-    return "Healing meters for Ashita v4.";
+    return plugininfo_t("Heeps", "Relliko, kjLotus", 1.07, 1, 0);
 }
 
 /**
@@ -94,7 +60,7 @@ bool Heeps::Initialize(IAshitaCore* core, ILogManager* log, uint32_t id)
 	this->m_AshitaCore = core;
 	this->m_PluginId = id;
 	this->m_LogManager = log;
-    this->m_LastRender = clock();
+    this->m_LastRender = GetTickCount();
     srand(static_cast<unsigned int>(time(nullptr)));
     m_CharInfo = 0;
 	m_AshitaCore->GetConfigurationManager()->Load("Heeps", "Heeps");
@@ -129,165 +95,144 @@ void Heeps::Release(void)
  *
  * @return True on handled, false otherwise.
  */
-bool Heeps::HandleCommand(int32_t mode, const char* command, bool injected)
+bool Heeps::HandleCommand(const char* command, int32_t type)
 {
+    UNREFERENCED_PARAMETER(type);
+    char buff[256], help[1024];
+    sprintf_s(help, sizeof(help), "\tInvalid command. Available commands:\n\t/hps reset\n\t/hps report [s/p/l] [#]\n\t/hps test\n\t/hps jobcolors\n\t/hps partyonly\n\t/hps tvmode");
+
     std::vector<std::string> args;
-    auto count = Ashita::Commands::GetCommandArgs(command, &args);
-    if (count <= 0) return false;
-    HANDLECOMMAND("/heeps", "/hps")
+    std::string T = command;
+    size_t next = 0, last = 0;
+    while ((next = T.find(" ", last)) != std::string::npos)
     {
-        if (count >= 2)
-        {
-            if (args[1] == "reset")
-            {
-                m_Entities.clear();
-                m_SourceInfo.clear();
-                m_CharInfo = 0;
-                return true;
-            }
-            else if (args[1] == "test")
-            {
-                m_Entities.clear();
-                m_SourceInfo.clear();
-                m_CharInfo = 0;
+        args.push_back(T.substr(last, next - last));
+        last = next + 1;
+    }
+    args.push_back(T.substr(last));
 
-                // Create Test Healer 1
-                entitysources_t healer1;
-                healer1.name = "TestHealer1";
-                healer1.id = 1;
-                healer1.color = D3DCOLOR_ARGB(255, 255, 0, 0);
+    if (args[0] != "/heeps" && args[0] != "/hps")
+        return false;
 
-                source_t cure4;
-                cure4.name = "Cure IV";
-                cure4.amount["Heal"].total = 1500;
-                cure4.amount["Heal"].count = 5;
-                cure4.amount["Heal"].min = 280;
-                cure4.amount["Heal"].max = 320;
-                healer1.sources.insert(std::make_pair(123, cure4));
-
-                source_t cure3;
-                cure3.name = "Cure III";
-                cure3.amount["Heal"].total = 800;
-                cure3.amount["Heal"].count = 8;
-                cure3.amount["Heal"].min = 90;
-                cure3.amount["Heal"].max = 110;
-                healer1.sources.insert(std::make_pair(456, cure3));
-
-                m_Entities.insert(std::make_pair(healer1.id, healer1));
-
-                // Create Test Healer 2
-                entitysources_t healer2;
-                healer2.name = "TestHealer2";
-                healer2.id = 2;
-                healer2.color = D3DCOLOR_ARGB(255, 0, 255, 0);
-
-                source_t waltz;
-                waltz.name = "Curing Waltz";
-                waltz.amount["Heal"].total = 2500;
-                waltz.amount["Heal"].count = 10;
-                waltz.amount["Heal"].min = 240;
-                waltz.amount["Heal"].max = 260;
-                healer2.sources.insert(std::make_pair(789, waltz));
-
-                m_Entities.insert(std::make_pair(healer2.id, healer2));
-
-                m_AshitaCore->GetChatManager()->Writef(0, false, "%s%s", Ashita::Chat::Header("Heeps").c_str(), Ashita::Chat::Message("Test data loaded.").c_str());
-                return true;
-            }
-            else if (args[1] == "report")
-            {
-                char mode = 0x00;
-                int max = 3;
-                if (count > 2)
-                {
-                    if (std::all_of(args[2].begin(), args[2].end(), ::isdigit))
-                    {
-                        max = atoi(args[2].c_str());
-                    }
-                    else
-                    {
-                        mode = args[2][0];
-                        if (count > 3)
-                        {
-                            if (std::all_of(args[2].begin(), args[2].end(), ::isdigit))
-                            {
-                                max = atoi(args[2].c_str());
-                            }
-                        }
-                    }
-                }
-
-                std::thread([this, mode, max] { this->Report(mode, max); }).detach();
-
-                return true;
-            }
-            else if (args[1] == "debug")
-            {
-                m_Debug = !m_Debug;
-                m_AshitaCore->GetChatManager()->Writef(0, false, "%s%s", Ashita::Chat::Header("Heeps").c_str(), Ashita::Chat::Message(m_Debug ? "Debug Enabled" : "Debug Disabled").c_str());
-                return true;
-            }
-            else if (args[1] == "jobcolors")
-            {
-                m_JobColors = !m_JobColors;
-                m_AshitaCore->GetChatManager()->Writef(0, false, "%s%s", Ashita::Chat::Header("Heeps").c_str(), Ashita::Chat::Message(m_JobColors ? "Job Colors Enabled" : "Job Colors Disabled").c_str());
-                return true;
-            }
-            else if (args[1] == "partyonly")
-            {
-                m_PartyOnly = !m_PartyOnly;
-                m_AshitaCore->GetChatManager()->Writef(0, false, "%s%s", Ashita::Chat::Header("Heeps").c_str(), Ashita::Chat::Message(m_PartyOnly ? "Party Only Enabled" : "Party Only Disabled").c_str());
-                return true;
-            }
-            else if (args[1] == "tvmode")
-            {
-                m_TVMode = !m_TVMode;
-                m_GUIScale = m_TVMode ? 1.5f : 1.0f;
-                // Wipe heeps to re-render the bars correctly
-                 m_Entities.clear();
-                m_SourceInfo.clear();
-                m_CharInfo = 0;
-                m_AshitaCore->GetChatManager()->Writef(0, false, "%s%s", Ashita::Chat::Header("Heeps").c_str(), Ashita::Chat::Message(m_TVMode ? "TV Mode Enabled" : "TV Mode Disabled").c_str());
-                return true;
-            }
-        }
-        std::stringstream out;
-        out << Ashita::Chat::Header("Heeps");
-        out << Ashita::Chat::Error("Invalid command.");
-        m_AshitaCore->GetChatManager()->Write(0, false, out.str().c_str());
-        out = std::stringstream();
-        out << Ashita::Chat::Header("Heeps");
-        out << Ashita::Chat::Color2(2, "/hps reset");
-        out << Ashita::Chat::Message(" - Reset healing counters.");
-        m_AshitaCore->GetChatManager()->Write(0, false, out.str().c_str());
-        out = std::stringstream();
-        out << Ashita::Chat::Header("Heeps");
-        out << Ashita::Chat::Color2(2, "/hps report [s/p/l] [#]");
-        out << Ashita::Chat::Message(" - Report healing data to say, party, or linkshell.");
-        m_AshitaCore->GetChatManager()->Write(0, false, out.str().c_str());
-        out = std::stringstream();
-        out << Ashita::Chat::Header("Heeps");
-        out << Ashita::Chat::Color2(2, "/hps test");
-        out << Ashita::Chat::Message(" - Injects test data to verify rendering.");
-        m_AshitaCore->GetChatManager()->Write(0, false, out.str().c_str());
-        out = std::stringstream();
-        out << Ashita::Chat::Header("Heeps");
-        out << Ashita::Chat::Color2(2, "/hps jobcolors");
-        out << Ashita::Chat::Message(" - Toggle job-based color coding.");
-        m_AshitaCore->GetChatManager()->Write(0, false, out.str().c_str());
-        out = std::stringstream();
-        out << Ashita::Chat::Header("Heeps");
-        out << Ashita::Chat::Color2(2, "/hps partyonly");
-        out << Ashita::Chat::Message(" - Toggle displaying data from non-party members.");
-        m_AshitaCore->GetChatManager()->Write(0, false, out.str().c_str());
-        out = std::stringstream();
-        out << Ashita::Chat::Header("Heeps");
-        out << Ashita::Chat::Color2(2, "/hps tvmode");
-        out << Ashita::Chat::Message(" - Scales Heeps up to a size that works better on large displays. Note: This resets the current combat data.");
-        m_AshitaCore->GetChatManager()->Write(0, false, out.str().c_str());
+    if (args.size() < 2)
+    {
+        m_AshitaCore->GetChatManager()->Write(help);
         return true;
     }
-    return false;
+
+    if (args[1] == "reset")
+    {
+        m_Entities.clear();
+        m_SourceInfo.clear();
+        m_CharInfo = 0;
+    }
+    else if (args[1] == "test")
+    {
+        m_Entities.clear();
+        m_SourceInfo.clear();
+        m_CharInfo = 0;
+
+        // Create Test Healer 1
+        entitysources_t healer1;
+        healer1.name = "TestHealer1";
+        healer1.id = 1;
+        healer1.color = D3DCOLOR_ARGB(255, 255, 0, 0);
+
+        source_t cure4;
+        cure4.name = "Cure IV";
+        cure4.amount["Heal"].total = 1500;
+        cure4.amount["Heal"].count = 5;
+        cure4.amount["Heal"].min = 280;
+        cure4.amount["Heal"].max = 320;
+        healer1.sources.insert(std::make_pair(123, cure4));
+
+        source_t cure3;
+        cure3.name = "Cure III";
+        cure3.amount["Heal"].total = 800;
+        cure3.amount["Heal"].count = 8;
+        cure3.amount["Heal"].min = 90;
+        cure3.amount["Heal"].max = 110;
+        healer1.sources.insert(std::make_pair(456, cure3));
+
+        m_Entities.insert(std::make_pair(healer1.id, healer1));
+
+        // Create Test Healer 2
+        entitysources_t healer2;
+        healer2.name = "TestHealer2";
+        healer2.id = 2;
+        healer2.color = D3DCOLOR_ARGB(255, 0, 255, 0);
+
+        source_t waltz;
+        waltz.name = "Curing Waltz";
+        waltz.amount["Heal"].total = 2500;
+        waltz.amount["Heal"].count = 10;
+        waltz.amount["Heal"].min = 240;
+        waltz.amount["Heal"].max = 260;
+        healer2.sources.insert(std::make_pair(789, waltz));
+
+        m_Entities.insert(std::make_pair(healer2.id, healer2));
+
+        m_AshitaCore->GetChatManager()->Write("Test data loaded.");
+    }
+    else if (args[1] == "report")
+    {
+        char mode = 0x00;
+        int max = 3;
+        if (args.size() > 2)
+        {
+            if (std::all_of(args[2].begin(), args[2].end(), ::isdigit))
+            {
+                max = atoi(args[2].c_str());
+            }
+            else
+            {
+                mode = args[2][0];
+                if (args.size() > 3)
+                {
+                    if (std::all_of(args[3].begin(), args[3].end(), ::isdigit))
+                    {
+                        max = atoi(args[3].c_str());
+                    }
+                }
+            }
+        }
+        std::thread([this, mode, max] { this->Report(mode, max); }).detach();
+    }
+    else if (args[1] == "debug")
+    {
+        m_Debug = !m_Debug;
+        sprintf_s(buff, sizeof(buff), "Debug %s.", m_Debug ? "enabled" : "disabled");
+        m_AshitaCore->GetChatManager()->Write(buff);
+    }
+    else if (args[1] == "jobcolors")
+    {
+        m_JobColors = !m_JobColors;
+        sprintf_s(buff, sizeof(buff), "Job colors %s.", m_JobColors ? "enabled" : "disabled");
+        m_AshitaCore->GetChatManager()->Write(buff);
+    }
+    else if (args[1] == "partyonly")
+    {
+        m_PartyOnly = !m_PartyOnly;
+        sprintf_s(buff, sizeof(buff), "Party only %s.", m_PartyOnly ? "enabled" : "disabled");
+        m_AshitaCore->GetChatManager()->Write(buff);
+    }
+    else if (args[1] == "tvmode")
+    {
+        m_TVMode = !m_TVMode;
+        m_GUIScale = m_TVMode ? 1.5f : 1.0f;
+        // Wipe heeps to re-render the bars correctly
+        m_Entities.clear();
+        m_SourceInfo.clear();
+        m_CharInfo = 0;
+        sprintf_s(buff, sizeof(buff), "TV mode %s.", m_TVMode ? "enabled" : "disabled");
+        m_AshitaCore->GetChatManager()->Write(buff);
+    }
+    else
+    {
+        m_AshitaCore->GetChatManager()->Write(help);
+    }
+
+    return true;
 }
 
 void Heeps::Report(char mode, int max)
@@ -298,7 +243,7 @@ void Heeps::Report(char mode, int max)
         if (mode != 0x00)
         {
             sprintf_s(buff, sizeof(buff), "/%c %s", mode, m_Background->GetText());
-            m_AshitaCore->GetChatManager()->QueueCommand(1, buff);
+            m_AshitaCore->GetChatManager()->QueueCommand(buff, 1);
         }
         for (size_t i = 0; i < m_Bars.size(); i++)
         {
@@ -310,28 +255,51 @@ void Heeps::Report(char mode, int max)
             if ((bar != nullptr) && (mode != 0x00))
             {
                 sprintf_s(buff, sizeof(buff), "/%c %s", mode, bar->GetText());
-                m_AshitaCore->GetChatManager()->QueueCommand(1, buff);
+                m_AshitaCore->GetChatManager()->QueueCommand(buff, 1);
             }
         }
     }
 }
 
+/************************************************************************************************/
+/* Ashita Plugin Exports                                                                        */
+/************************************************************************************************/
+IPlugin* g_Plugin = nullptr;
+
 /**
- * @brief Gets the interface version this plugin was compiled with.
- *
- * @note This is a required export, your plugin must implement this!
- */
-__declspec(dllexport) double __stdcall expGetInterfaceVersion(void)
+* @brief Creates an instance of this plugin object.
+*
+* @note This is a required export, your plugin must implement this!
+*/
+extern "C" __declspec(dllexport) IPlugin* __stdcall CreatePlugin(void)
+{
+    if (g_Plugin != nullptr)
+        return g_Plugin;
+    g_Plugin = new Heeps();
+    return g_Plugin;
+}
+
+/**
+* @brief Returns the interface version this plugin was compiled with.
+*
+* @note This is a required export, your plugin must implement this!
+*/
+extern "C" __declspec(dllexport) double __stdcall GetInterfaceVersion(void)
 {
     return ASHITA_INTERFACE_VERSION;
 }
 
 /**
- * @brief Creates an instance of this plugin object.
- *
- * @note This is a required export, your plugin must implement this!
- */
-__declspec(dllexport) IPlugin* __stdcall expCreatePlugin(const char* args)
+* @brief Creates the plugin information header for this plugin.
+*
+* @param {plugininfo_t*} The plugin information structure to be filled.
+* @note This is a required export, your plugin must implement this!
+*/
+extern "C" __declspec(dllexport) void __stdcall CreatePluginInfo(plugininfo_t* info)
 {
-    return (IPlugin*)new Heeps();
+    if (info == nullptr)
+        return;
+    if (g_Plugin == nullptr)
+        g_Plugin = new Heeps();
+    *info = g_Plugin->GetPluginInfo();
 }

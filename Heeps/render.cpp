@@ -22,11 +22,11 @@ Heeps* g_Heeps = nullptr;
 /**
  * Global function to serve as mouse callback
  */
-BOOL __stdcall g_OnClick(uint32_t uMsg, WPARAM wParam, LPARAM lParam, bool handled)
+BOOL __stdcall g_OnClick(UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
     if (g_Heeps == nullptr)
         return false;
-    return g_Heeps->OnClick(uMsg, wParam, lParam, handled);
+    return g_Heeps->OnClick(uMsg, wParam, lParam);
 }
 
 /**
@@ -34,16 +34,16 @@ BOOL __stdcall g_OnClick(uint32_t uMsg, WPARAM wParam, LPARAM lParam, bool handl
  */
 void Heeps::Direct3DRelease(void)
 {
-    m_AshitaCore->GetInputManager()->GetMouse()->RemoveCallback("heeps_click");
+    m_AshitaCore->GetInputManager()->GetKeyboard()->RemoveCallback("heeps_click");
 
     if (m_Background != nullptr)
     {
-        m_AshitaCore->GetConfigurationManager()->SetValue("Heeps", "guipos", "xpos", std::to_string(m_Background->GetPositionX()).c_str());
-        m_AshitaCore->GetConfigurationManager()->SetValue("Heeps", "guipos", "ypos", std::to_string(m_Background->GetPositionY()).c_str());
+        m_AshitaCore->GetConfigurationManager()->set_value("Heeps", "xpos", std::to_string(m_Background->GetPositionX()).c_str());
+        m_AshitaCore->GetConfigurationManager()->set_value("Heeps", "ypos", std::to_string(m_Background->GetPositionY()).c_str());
         m_AshitaCore->GetFontManager()->Delete(m_Background->GetAlias());
         m_Background = nullptr;
     }
-    m_AshitaCore->GetConfigurationManager()->SetValue("Heeps", "tvmode", "enabled", std::to_string(m_TVMode).c_str());
+    m_AshitaCore->GetConfigurationManager()->set_value("Heeps", "tvmode", std::to_string(m_TVMode).c_str());
     m_AshitaCore->GetConfigurationManager()->Save("Heeps", "Heeps");
 
     while (!m_Bars.empty())
@@ -74,10 +74,10 @@ bool Heeps::Direct3DInitialize(IDirect3DDevice8* device)
     m_Drag                 = false;
     g_Heeps                = this;
 
-    float xpos = m_AshitaCore->GetConfigurationManager()->GetFloat("Heeps", "guipos", "xpos", 300.0f);
-    float ypos = m_AshitaCore->GetConfigurationManager()->GetFloat("Heeps", "guipos", "ypos", 300.0f);
-    m_TVMode = m_AshitaCore->GetConfigurationManager()->GetBool("Heeps", "tvmode", "enabled", false);
-    m_GUIScale = m_AshitaCore->GetConfigurationManager()->GetBool("Heeps", "tvmode", "enabled", false) ? 1.5f : 1.0f;
+    float xpos = m_AshitaCore->GetConfigurationManager()->get_float("Heeps", "xpos", 300.0f);
+    float ypos = m_AshitaCore->GetConfigurationManager()->get_float("Heeps", "ypos", 300.0f);
+    m_TVMode = m_AshitaCore->GetConfigurationManager()->get_bool("Heeps", "tvmode", false);
+    m_GUIScale = m_AshitaCore->GetConfigurationManager()->get_bool("Heeps", "tvmode", false) ? 1.5f : 1.0f;
 
     m_Background = m_AshitaCore->GetFontManager()->Create("HeepsBackground");
     if (m_Background == nullptr) return false;
@@ -88,7 +88,6 @@ bool Heeps::Direct3DInitialize(IDirect3DDevice8* device)
     m_Background->GetBackground()->SetVisible(true);
     m_Background->GetBackground()->SetWidth(WINDOW_WIDTH * m_GUIScale);
     m_Background->GetBackground()->SetHeight(TITLEBAR_HEIGHT * m_GUIScale);
-    m_Background->GetBackground()->SetCanFocus(false);
     m_Background->SetColor(D3DCOLOR_ARGB(0xFF, 0xFF, 0xFF, 0xFF));
     m_Background->SetBold(false);
     m_Background->SetText("");
@@ -96,16 +95,15 @@ bool Heeps::Direct3DInitialize(IDirect3DDevice8* device)
     m_Background->SetPositionY(ypos);
     m_Background->SetVisible(true);
 
-    m_AshitaCore->GetInputManager()->GetMouse()->AddCallback("heeps_click", g_OnClick);
+    m_AshitaCore->GetInputManager()->GetKeyboard()->AddCallback("heeps_click", nullptr, nullptr, nullptr, (LPVOID)g_OnClick);
 
     return true;
 }
 
-void Heeps::Direct3DPresent(const RECT* pSourceRect, const RECT* pDestRect, HWND hDestWindowOverride, const RGNDATA* pDirtyRegion)
+void Heeps::Direct3DRender(void)
 {
-
-    clock_t now = clock();
-    if (!(now - m_LastRender > 0.1*CLOCKS_PER_SEC))
+    DWORD now = GetTickCount();
+    if (!(now - m_LastRender > 100))
     {
         return;
     }
@@ -236,7 +234,7 @@ void Heeps::Direct3DPresent(const RECT* pSourceRect, const RECT* pDestRect, HWND
         }
     }
     m_Background->GetBackground()->SetHeight(static_cast<float>(m_Bars.size()) * (BAR_BACKGROUND_HEIGHT * m_GUIScale) + (TITLEBAR_HEIGHT * m_GUIScale));
-    m_LastRender = clock();
+    m_LastRender = GetTickCount();
 }
 
 /**
@@ -257,20 +255,16 @@ void Heeps::RepairBars(IFontObject* heepsBase, uint8_t size)
         if (newBar == nullptr) continue;
         newBar->SetAutoResize(false);
         newBar->SetFontFamily("Arial");
-        if (m_TVMode)
-        {
-            newBar->SetCreateFlags(Ashita::FontCreateFlags::Bold);
-        }
+        newBar->SetBold(m_TVMode);
         newBar->SetFontHeight(static_cast<uint32_t>(BAR_FONT_HEIGHT * m_GUIScale));
         newBar->GetBackground()->SetColor(D3DCOLOR_ARGB(0xFF, 0x00, 0x7C, 0x5C));
         newBar->GetBackground()->SetVisible(true);
         char texturePath[MAX_PATH];
-        sprintf_s(texturePath, sizeof(texturePath), "%s\\Resources\\Heeps\\bar.tga", m_AshitaCore->GetInstallPath());
+        sprintf_s(texturePath, sizeof(texturePath), "%s\\Resources\\Heeps\\bar.tga", m_AshitaCore->GetAshitaInstallPathA());
         newBar->GetBackground()->SetTextureFromFile(texturePath);
         newBar->GetBackground()->SetWidth(BAR_WIDTH * m_GUIScale);
         newBar->GetBackground()->SetHeight(BAR_HEIGHT * m_GUIScale);
         newBar->SetVisible(true);
-        newBar->SetCanFocus(false);
         if (barCount == 0)
         {
             newBar->SetParent(m_Background);
@@ -302,7 +296,7 @@ void Heeps::RepairBars(IFontObject* heepsBase, uint8_t size)
     }
 }
 
-bool Heeps::OnClick(uint32_t uMsg, WPARAM wParam, LPARAM lParam, bool handled)
+bool Heeps::OnClick(uint32_t uMsg, WPARAM wParam, LPARAM lParam)
 {
     int32_t xpos = GET_X_LPARAM(lParam);
     int32_t ypos = GET_Y_LPARAM(lParam);
@@ -409,7 +403,7 @@ uint32_t Heeps::CheckColorSetting(uint32_t id, uint32_t randomColor)
         return randomColor;
 
     // Check if we have an available job for the player (Job can be 0 if person is anon!!)
-    IParty* party = m_AshitaCore->GetMemoryManager()->GetParty();
+    IParty* party = m_AshitaCore->GetDataManager()->GetParty();
     if (party == nullptr) return randomColor;
     for (int i = 0; i < 18; i++)
     {
@@ -429,7 +423,7 @@ bool Heeps::CheckPartySetting(uint32_t id)
     if (this->m_PartyOnly == false)
         return true;
 
-    IParty* party = m_AshitaCore->GetMemoryManager()->GetParty();
+    IParty* party = m_AshitaCore->GetDataManager()->GetParty();
     if (party == nullptr) return false;
     for (int i = 0; i < 18; i++)
     {
